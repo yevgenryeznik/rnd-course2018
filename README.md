@@ -1,6 +1,6 @@
 # Optimal designs and randomization techiques for clinical trials
 
-Course materials for the "Optimal designs and randomization techniques for clinical tirals" course taught at the Department of Mathematics, Uppsala University, in Spring 2018.
+Lectures' materials for the "Optimal designs and randomization techniques for clinical tirals" course taught at the Department of Mathematics, Uppsala University, in Spring 2018.
 
 ## Course structure
 
@@ -14,4 +14,11 @@ Course materials for the "Optimal designs and randomization techniques for clini
 - Lecture 8: __Optimal and Adaptive Designs for Quantal Dose-Response Problems__
 - Lecture 9: __Case Studies (by [Oleksandr Sverdlov](https://scholar.google.com/citations?user=BNItFkEAAAAJ&hl=en), Novartis Pharmaceuticals)__
 
-## 
+## How to run the content?
+
+There are nine \*.Rmd files with the corresponding content. One file corresponds to one lecture. 
+
+After rendering \*.Rmd file, the lecture's content is available in the slidy_presentation format, which one can run in a web browser. 
+
+If needed, there is an \*.R script that reproduced the figures and/or numeric results presented in the lecture. \*.R scripts available in the folder code.
+
