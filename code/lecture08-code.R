@@ -20,7 +20,7 @@ simulate_logistic <- function(nsbj, d, alpha, beta) {
   # number of events per dose
   x <- map_dbl(d, ~ sum(Y[. == dose]))
   
-  data_frame(d = d, n = n, x = x)
+  tibble::tibble(d = d, n = n, x = x)
 }
 
 
@@ -249,7 +249,7 @@ rwr_design <- function(d, N, G, alpha, beta, show_plot = FALSE) {
     }
     Y[j+1] <- if_else(u <= 1/(1+exp(-(alpha+beta*X[j+1]))), 1, 0)
   }
-  return(data_frame(X, Y))
+  return(tibble::tibble(X, Y))
 }
 
 
