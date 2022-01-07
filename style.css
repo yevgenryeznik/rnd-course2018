@@ -1,0 +1,75 @@
+h2 { /* Header 2 */
+  font-size: 32px;
+  font-weight: bold;
+  color: DarkBlue;
+}
+
+.column-left{
+  float: left;
+  width: 45%;
+  text-align: left;
+}
+.column-left33{
+  float: left;
+  width: 33%;
+  text-align: center;
+}
+.column-left85{
+  float: left;
+  width: 85%;
+  text-align: left;
+}
+
+.column-center{
+  display: inline-block;
+  width: 10%;
+  text-align: center;
+}
+.column-center33{
+  display: inline-block;
+  width: 33%;
+  text-align: center;
+}
+.column-right{
+  float: right;
+  width: 45%;
+  text-align: left;
+}
+.column-right33{
+  float: right;
+  width: 33%;
+  text-align: center;
+}
+.column-right15{
+  float: right;
+  width: 15%;
+  text-align: center;
+}
+.column-right-w{
+  float: right;
+  width: 55%;
+  text-align: left;
+}
+
+.boxed {
+  border: 1px solid green ;
+  text-align: center;
+}
+
+.boxed1 {
+  border: 1px solid green ;
+  text-align: justify;
+}
+
+.caption {
+  text-align: center;
+  font-size: .8rem;
+}
+
+img[alt$="<"] {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: auto;
+    float: none!important;
+}
