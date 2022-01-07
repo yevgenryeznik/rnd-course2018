@@ -134,18 +134,3 @@ fit_logistic <- function(d, n, x) {
   theta_mle <- nleqslv(c(0, 0), function(theta) {score_equations(theta, d, n, x)}, control=list(btol=.001))$x
   list(alpha = theta_mle[1], beta = theta_mle[2])
 }
-
-# simulation
-# nsim <- 1000
-# map(seq_len(nsim), ~ {
-#   obs <- simulate_logistic(100, d, alpha, beta)
-#   coeffs <- fit_logistic(obs$d, obs$n, obs$x)
-#   
-#   data_frame(alpha = coeffs$alpha, beta = coeffs$beta)
-# }) %>% 
-#   bind_rows() %>% 
-#   gather(coefficient, value) %>% 
-#   group_by(coefficient) %>% 
-#   summarise(mean = mean(value), sd = sd(value))
-  
-  
