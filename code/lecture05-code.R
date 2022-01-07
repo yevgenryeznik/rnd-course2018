@@ -39,7 +39,7 @@ ENF <- function(pE, pC, rho, n) {
 ## ===== Compare different allocations ===== ##
 
 cmp_allocations <- function(pE = seq(0.2, 0.9, by = 0.05), pC = 0.4, omega = 0.5) {
-  data_frame(
+  tibble::tibble(
     `pE` = pE,
     `1) 1:1` = 0.5,
     `2) 2:1` = 2/3,
@@ -78,7 +78,7 @@ cmp_allocations <- function(pE = seq(0.2, 0.9, by = 0.05), pC = 0.4, omega = 0.5
 # pE <- c(0.2, 0.5, 0.6, 0.7, 0.8)
 # pC <- rep(0.4, length(pE))
 # 
-# data_frame(
+# tibble::tibble(
 #   pE, 
 #   pC,
 #   `1:1` = paste0(
@@ -145,7 +145,7 @@ sigma2_fcn <- function(pE, pC, procedure, parameter=NA) {
 
 ## ===== Compare variances ===== ##
 cmp_variances <- function(pE = seq(0.2, 0.9, by = 0.05), pC = 0.4) {
-  data_frame(
+  tibble::tibble(
     `pE` = pE,
     `1) 1:1` = 0.25,
     `2) SMLE` = map_dbl(pE, ~ sigma2_fcn(., pC, "SMLE")),
@@ -326,7 +326,7 @@ RAR <- function(allocation_fcn, m0, nsbj, Y, nu = 0.5) {
 # nsim <- 10000              # number of simulations
 # nsbj <- 120                # number of subjects
 # Y_df <- map(seq_len(nsim), ~ 
-#   data_frame(
+#   tibble::tibble(
 #     E = rbinom(nsbj, 1, 0.7), 
 #     C = rbinom(nsbj, 1, 0.4)
 #   )
@@ -347,7 +347,7 @@ RAR <- function(allocation_fcn, m0, nsbj, Y, nu = 0.5) {
 #     df <- .x
 #     design <- .y
 #     df %>% map(~ {
-#       data_frame(
+#       tibble::tibble(
 #         design = design,
 #         nE = .$nE,
 #         prop = .$prop,
@@ -386,7 +386,7 @@ RAR <- function(allocation_fcn, m0, nsbj, Y, nu = 0.5) {
 #     df <- .x
 #     design <- .y
 #     df %>% map(~ {
-#       data_frame(
+#       tibble::tibble(
 #         design = design,
 #         nE = .$nE,
 #         prop = .$prop,
@@ -425,7 +425,7 @@ RAR <- function(allocation_fcn, m0, nsbj, Y, nu = 0.5) {
 # nsim <- 10000              # number of simulations
 # nsbj <- 477                # number of subjects
 # Y_df <- map(seq_len(nsim), ~ 
-#               data_frame(
+#               tibble::tibble(
 #                 E = rbinom(nsbj, 1, 0.917), # AZT has 0.917 probaility of success 
 #                 C = rbinom(nsbj, 1, 0.745)  # PBL has 0.745 probaility of success
 #               )
@@ -442,7 +442,7 @@ RAR <- function(allocation_fcn, m0, nsbj, Y, nu = 0.5) {
 #     df <- .x
 #     design <- .y
 #     df %>% map(~ {
-#       data_frame(
+#       tibble::tibble(
 #         design = design,
 #         nE = .$nE,
 #         pE = .$pE,
