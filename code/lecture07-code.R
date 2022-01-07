@@ -292,147 +292,148 @@ DBCD_BAR <- function(nsbj, Y, xi0, lambda = 0.5, gm = 2, m0 = 10) {
     )
   )
 }
+## Uncomment the code below, if there are no corresponding outputs in ./figures and ./data
 
-nsim <- 10000              # number of simulations
-nsbj <- 200                # number of subjects
-Y_df <- map(seq_len(nsim), ~
-              data_frame(
-                E = rbinom(nsbj, 1, 0.4),
-                C = rbinom(nsbj, 1, 0.2)
-              )
-)                          # subjects' responses
-
-crd <- map(Y_df, ~ CRD(nsbj, .))
-bar1 <- map(Y_df, ~ BAR(nsbj, .))
-bar05 <- map(Y_df, ~ BAR(nsbj, ., lambda = 0.5))
-bar_lmb <- map(Y_df, ~ BAR(nsbj, ., lambda = function(m, N) m/(2*N)))
-
-# DBCD
-dbcd_bar_080 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 0.80))
-dbcd_bar_075 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 0.75))
-dbcd_bar_066 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 2/3))
-
-## ===== Analysis =====
-# CRD vs. Thompson summary
-bar_summary <- map2(
-  list(crd, bar1),
-  list("1. CRD", "2. BAR (Thompson)"),
-  ~ {
-    df <- .x
-    design <- .y
-    df %>% map(~ {
-      data_frame(
-        design = design,
-        nE = .$nE,
-        prop = .$prop,
-        TNF = .$TNF,
-        reject = .$reject
-      )
-    }) %>%
-      bind_rows()
-  }
-) %>%
-  bind_rows()
-
-# boxplots
-bar_summary %>% 
-  select(design, `Allocation proportion` = prop, `Total number of Failures` = TNF) %>% 
-  gather(key, value, -design) %>%
-  ggplot(aes(x = factor(design), y = value))+
-    geom_boxplot()+
-    xlab("")+
-    ylab("")+
-    facet_wrap( ~ key, scales = "free_y")+
-    theme(
-      axis.text = element_text(family = "Helvetica", face = "bold", size = 14),
-      axis.title = element_text(family = "Helvetica", face = "bold", size = 18),
-      strip.text = element_text(family = "Helvetica", face = "bold", size = 18)
-    ) 
-
-ggsave("./figures/lecture07-fig08-crd-vs-thompson.png", width = 16, height = 9, units = "in")
-
-bar_summary %>% 
-  group_by(design) %>% 
-  summarise(
-    mean_nE = round(mean(nE)),
-    min_nE = round(min(nE)),
-    max_nE = round(max(nE)),
-    mean_prop = mean(prop),
-    var_prop = var(prop),
-    sd_prop = sd(prop),
-    Power = mean(reject),
-    TNF_mean = mean(TNF),
-    TNF_sd = sd(TNF)
-  ) %>%
-  mutate(
-    mean_prop = round(mean_prop, 2),
-    var_prop = round(var_prop, 4),
-    Power = round(Power, 2),
-    TNF_mean = round(TNF_mean),
-    TNF_sd = round(TNF_sd)
-  )
-#####  
-
-# Exploring the Impact of lambda
-bar_summary2 <- map2(
-  list(crd, bar1, bar05, bar_lmb),
-  list("1. CRD", "2. lmb = 1 (Thompson)", "3. lmb = 1/2", "4. lmb = m/(2n)"),
-  ~ {
-    df <- .x
-    design <- .y
-    df %>% map(~ {
-      data_frame(
-        design = design,
-        nE = .$nE,
-        prop = .$prop,
-        TNF = .$TNF,
-        reject = .$reject
-      )
-    }) %>%
-      bind_rows()
-  }
-) %>%
-  bind_rows()
-
-# boxplots
-bar_summary2 %>% 
-  select(design, `Allocation proportion` = prop, `Total number of Failures` = TNF) %>% 
-  gather(key, value, -design) %>%
-  ggplot(aes(x = factor(design), y = value))+
-  geom_boxplot()+
-  xlab("")+
-  ylab("")+
-  facet_wrap( ~ key, scales = "free_y")+
-  theme(
-    axis.text = element_text(family = "Helvetica", face = "bold", size = 14),
-    axis.title = element_text(family = "Helvetica", face = "bold", size = 18),
-    strip.text = element_text(family = "Helvetica", face = "bold", size = 18)
-  ) 
-
-ggsave("./figures/lecture07-fig09-bar-vs-lambda.png", width = 16, height = 9, units = "in")
-
-bar_summary2 %>% 
-  group_by(design) %>% 
-  summarise(
-    mean_nE = round(mean(nE)),
-    min_nE = round(min(nE)),
-    max_nE = round(max(nE)),
-    mean_prop = mean(prop),
-    var_prop = var(prop),
-    sd_prop = sd(prop),
-    Power = mean(reject),
-    TNF_mean = mean(TNF),
-    TNF_sd = sd(TNF)
-  ) %>%
-  mutate(
-    mean_prop = round(mean_prop, 2),
-    var_prop = round(var_prop, 4),
-    Power = round(Power, 2),
-    TNF_mean = round(TNF_mean),
-    TNF_sd = round(TNF_sd)
-  )
-
-save(bar_summary, bar_summary2, file = "./data/lecture07-bar-summary.Rda")
+# nsim <- 10000              # number of simulations
+# nsbj <- 200                # number of subjects
+# Y_df <- map(seq_len(nsim), ~
+#               data_frame(
+#                 E = rbinom(nsbj, 1, 0.4),
+#                 C = rbinom(nsbj, 1, 0.2)
+#               )
+# )                          # subjects' responses
+# 
+# crd <- map(Y_df, ~ CRD(nsbj, .))
+# bar1 <- map(Y_df, ~ BAR(nsbj, .))
+# bar05 <- map(Y_df, ~ BAR(nsbj, ., lambda = 0.5))
+# bar_lmb <- map(Y_df, ~ BAR(nsbj, ., lambda = function(m, N) m/(2*N)))
+# 
+# # DBCD
+# dbcd_bar_080 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 0.80))
+# dbcd_bar_075 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 0.75))
+# dbcd_bar_066 <- map(Y_df, ~ DBCD_BAR(nsbj, ., xi0 = 2/3))
+# 
+# ## ===== Analysis =====
+# # CRD vs. Thompson summary
+# bar_summary <- map2(
+#   list(crd, bar1),
+#   list("1. CRD", "2. BAR (Thompson)"),
+#   ~ {
+#     df <- .x
+#     design <- .y
+#     df %>% map(~ {
+#       data_frame(
+#         design = design,
+#         nE = .$nE,
+#         prop = .$prop,
+#         TNF = .$TNF,
+#         reject = .$reject
+#       )
+#     }) %>%
+#       bind_rows()
+#   }
+# ) %>%
+#   bind_rows()
+# 
+# # boxplots
+# bar_summary %>% 
+#   select(design, `Allocation proportion` = prop, `Total number of Failures` = TNF) %>% 
+#   gather(key, value, -design) %>%
+#   ggplot(aes(x = factor(design), y = value))+
+#     geom_boxplot()+
+#     xlab("")+
+#     ylab("")+
+#     facet_wrap( ~ key, scales = "free_y")+
+#     theme(
+#       axis.text = element_text(family = "Helvetica", face = "bold", size = 14),
+#       axis.title = element_text(family = "Helvetica", face = "bold", size = 18),
+#       strip.text = element_text(family = "Helvetica", face = "bold", size = 18)
+#     ) 
+# 
+# ggsave("./figures/lecture07-fig08-crd-vs-thompson.png", width = 16, height = 9, units = "in")
+# 
+# bar_summary %>% 
+#   group_by(design) %>% 
+#   summarise(
+#     mean_nE = round(mean(nE)),
+#     min_nE = round(min(nE)),
+#     max_nE = round(max(nE)),
+#     mean_prop = mean(prop),
+#     var_prop = var(prop),
+#     sd_prop = sd(prop),
+#     Power = mean(reject),
+#     TNF_mean = mean(TNF),
+#     TNF_sd = sd(TNF)
+#   ) %>%
+#   mutate(
+#     mean_prop = round(mean_prop, 2),
+#     var_prop = round(var_prop, 4),
+#     Power = round(Power, 2),
+#     TNF_mean = round(TNF_mean),
+#     TNF_sd = round(TNF_sd)
+#   )
+# #####  
+# 
+# # Exploring the Impact of lambda
+# bar_summary2 <- map2(
+#   list(crd, bar1, bar05, bar_lmb),
+#   list("1. CRD", "2. lmb = 1 (Thompson)", "3. lmb = 1/2", "4. lmb = m/(2n)"),
+#   ~ {
+#     df <- .x
+#     design <- .y
+#     df %>% map(~ {
+#       data_frame(
+#         design = design,
+#         nE = .$nE,
+#         prop = .$prop,
+#         TNF = .$TNF,
+#         reject = .$reject
+#       )
+#     }) %>%
+#       bind_rows()
+#   }
+# ) %>%
+#   bind_rows()
+# 
+# # boxplots
+# bar_summary2 %>% 
+#   select(design, `Allocation proportion` = prop, `Total number of Failures` = TNF) %>% 
+#   gather(key, value, -design) %>%
+#   ggplot(aes(x = factor(design), y = value))+
+#   geom_boxplot()+
+#   xlab("")+
+#   ylab("")+
+#   facet_wrap( ~ key, scales = "free_y")+
+#   theme(
+#     axis.text = element_text(family = "Helvetica", face = "bold", size = 14),
+#     axis.title = element_text(family = "Helvetica", face = "bold", size = 18),
+#     strip.text = element_text(family = "Helvetica", face = "bold", size = 18)
+#   ) 
+# 
+# ggsave("./figures/lecture07-fig09-bar-vs-lambda.png", width = 16, height = 9, units = "in")
+# 
+# bar_summary2 %>% 
+#   group_by(design) %>% 
+#   summarise(
+#     mean_nE = round(mean(nE)),
+#     min_nE = round(min(nE)),
+#     max_nE = round(max(nE)),
+#     mean_prop = mean(prop),
+#     var_prop = var(prop),
+#     sd_prop = sd(prop),
+#     Power = mean(reject),
+#     TNF_mean = mean(TNF),
+#     TNF_sd = sd(TNF)
+#   ) %>%
+#   mutate(
+#     mean_prop = round(mean_prop, 2),
+#     var_prop = round(var_prop, 4),
+#     Power = round(Power, 2),
+#     TNF_mean = round(TNF_mean),
+#     TNF_sd = round(TNF_sd)
+#   )
+# 
+# save(bar_summary, bar_summary2, file = "./data/lecture07-bar-summary.Rda")
 
 #####
 
