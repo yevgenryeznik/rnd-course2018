@@ -18,7 +18,7 @@ Lectures' materials for the "Optimal designs and randomization techniques for cl
 
 There are nine \*.Rmd files with the corresponding content. One file corresponds to one lecture. 
 
-After rendering \*.Rmd file, the lecture's content is available in the slidy_presentation format, which one can run in a web browser. 
+After rendering \*.Rmd file, the lecture's content is available in the `slidy_presentation` format, which one can run in a web browser. 
 
-If needed, there is an \*.R script that reproduced the figures and/or numeric results presented in the lecture. \*.R scripts available in the folder code.
+If needed, there is an \*.R script that reproduced the figures and/or numeric results presented in the lecture \*.R scripts available in the folder `code`.
 
