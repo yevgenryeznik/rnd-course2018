@@ -16,7 +16,7 @@ CRD <- function(nsbj) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = "CRD",
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -46,7 +46,7 @@ Efron_BCD <- function(nsbj, p) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("Efron's BCD (p = ", round(p, 3), ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -77,7 +77,7 @@ ABCD <- function(nsbj, a) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("ABCD (a = ", a, ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -109,7 +109,7 @@ Ehrenfest_UD <- function(nsbj, w) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("ABCD (a = ", a, ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -140,7 +140,7 @@ Big_Stick <- function(nsbj, b) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("ABCD (a = ", a, ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -170,7 +170,7 @@ GBCD <- function(nsbj, rho) {
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("GBCD (rho = ", rho, ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
@@ -201,7 +201,7 @@ Wei_UD <- function(nsbj, alpha, beta){
   }
   
   # output
-  data_frame(
+  tibble::tibble(
     procedure = paste0("Wei's UD (alpha = ", alpha, ", beta = ", beta, ")"),
     subject = seq_len(nsbj),
     FI = map_dbl(subject, ~ mean(fi[seq_len(.)])),
