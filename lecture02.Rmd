@@ -1,0 +1,1331 @@
+---
+title: "Lecture 2:  \n Choice of the Target Allocation Ratio in Clinical Trials"
+author: 
+  - Yevgen Ryeznik <sup>&copy;</sup> (Department of Mathematics, Uppsala University)
+  - Oleksandr Sverdlov <sup>&copy;</sup> (Early Development Biostatistics, Novartis Institutes for Biomedical Research)
+css: style.css
+runtime: shiny
+output: 
+  slidy_presentation:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+library(shiny)
+library(tidyverse)
+library(kableExtra)
+
+source("./code/lecture02-code.R")
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.width = 8, 
+  fig.height = 6, 
+  fig.align = "center"
+)
+```
+
+## Agenda
+
+1. Maximizing power of treatment comparison
+2. Maximizing estimation precision of treatment effects and contrasts
+3. Optimal allocation designs to balance statistical efficiency and ethical considerations
+4. Optimal designs for dose-response studies
+
+## Background
+
+- The design of any cinical trial starts with formulation of study objectives, e.g.:
+
+    + To test whether the effect of an experimental treatment is different from control
+    + To estimate treatment contrasts (experimental group vs. control)
+    + To minimize the number of treatment failures while maintaining study power
+    + To estimate dose-response relationship
+    + Etc. ...
+
+- Once study objectives are quantified, one may want to obtain an optimal design to achive the desired objectives
+
+## Statistical methodologies
+
+```{r methodologies, echo=FALSE}
+tab <- tibble::tibble(
+  ` ` = c('Research Question(s)', 'Statistical Tool', 'Criteria for "goodness"'),
+  `Hypothesis Testing` = c('Is experimental treatment better than control? (Yes/No)',
+                           'Test of significance (e.g. two-sample t-test)',
+                           '- Statistical test should have **high power** to detect
+statisticaly significant difference between groups\n - **Validity** -- Pr(type I error) should be maintained at the nominal level (e.g. 5%)'),
+  `Estimation` = c('- What is the mean difference between experimental and control?\n - What is the estimated dose-response curve?',
+                   'Estimator', 'Estimators should be **unbiased** and have **low variance**')
+)
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3), background = "#99cfe0") %>% 
+  row_spec(2, background = "#c1e1ec")
+```
+
+
+## I. Maximizing power of a 2-arm comparative trial
+
+- Two groups: Experimental (E) and Control (C)
+- Sample size: a total of $n = n_E+n_C$ subjects
+
+    + $n_E = \rho n$ assigned to E, and $n_C = (1-\rho)n$ assigned to C (if necessary, rounded to the integer values)
+    + $\rho \in (0, 1)$ -- "allocation ratio"
+    
+- Primary outcomes: $Y_{ik}\sim Normal(\mu_k, \sigma^2)$, $k=E,C$; $i = 1, 2, \ldots, n_k$
+
+    + **$\sigma$ is common for both groups, assumed known**
+
+- Study objective: to test $H_0: \mu_E = \mu_C$ vs. $H_1: \mu_E > \mu_C$ (experimental is better than control)
+- $Z$-test: reject $H_0$ at level $\alpha$, if $Z = \frac{\overline{Y}_E-\overline{Y}_C}{\sigma\sqrt{\frac{1}{n_E}+\frac{1}{n_C}}} > z_{1-\alpha}$ 
+
+    + (e.g. $\alpha=0.05 \Rightarrow$ reject $H_0$ at 5% significance level, if $Z > 1.645$)
+
+
+## Which allocation maximizes power? (1 of 2)
+
+- _**Power**_ = 
+$\begin{aligned}
+ &= \text{Pr}(\text{Reject} H_0|n_E, n_C, \mu_E, \mu_C, \sigma^2, z_{1-\alpha}) = \text{Pr}\left(\frac{\overline{Y}_E-\overline{Y}_C}{\sigma\sqrt{\frac{1}{n_E}+\frac{1}{n_C}}} > z_{1-\alpha}\right) = \\
+&= \left| \text{Let } \left\{
+\begin{array}{l}
+  Z_0\sim N(0, 1); \\
+  \Phi\left(\cdot\right) - \text{ c.d.f. of standard normal R.V.}; \\
+  \Delta = \frac{\mu_E-\mu_C}{\sigma\sqrt{\frac{1}{n_E}+\frac{1}{n_C}}} > 0 \text{ (because }\mu_E>\mu_C\text{ under }H_1\text{)}
+\end{array}\right.
+\right| = \\
+&= \text{Pr}\left(\frac{\overline{Y}_E-\overline{Y}_C - (\mu_E-\mu_C)}{\sigma\sqrt{\frac{1}{n_E}+\frac{1}{n_C}}} + \frac{(\mu_E-\mu_C)}{\sigma\sqrt{\frac{1}{n_E}+\frac{1}{n_C}}} > z_{1-\alpha}\right) = \\
+&= \text{Pr}\left(Z_0+\Delta\right) = 1-\Phi\left(z_{1-\alpha}-\Delta\right)
+\end{aligned}$
+
+- To maximize _**Power**_, we need to minimize $\Phi\left(z_{1-\alpha}-\Delta\right)$ $\Leftrightarrow$ to maximize $\Delta$ w.r.t. $\rho \in (0,1)$
+
+
+## Which allocation maximizes power? (2 of 2)
+
+- $\Delta = \frac{\mu_E-\mu_C}{\sigma\sqrt{\frac{1}{n\rho}+\frac{1}{n(1-\rho)}}}\rightarrow \max\limits_{\rho \in (0,1)}$
+- Equivalently, $\frac{1}{n\rho}+\frac{1}{n(1-\rho)}\rightarrow \min\limits_{\rho\in (0,1)}$
+- Optimal solution is $\boldsymbol{\rho^* = \frac{1}{2}}$ (_**equal allocation**_)
+
+<span style="background-color: #6666ff; color:white">
+Therefore, for a 2-arm comparative trial with normal outcomes (with known variance, common to 2 groups), equal allocation $\left(n_E=n_c=\frac{n}{2}\right)$ maximizes the power of $Z$-test for treatment comparison.
+</span>
+
+**Note**: Same result is obtained, if we consider 2-sample t-test instead of $Z$-test.
+
+
+## Which allocation maximizes power? -- Demo 
+
+```{r, echo = FALSE}
+shinyApp(
+  
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("sample_size", 
+                  "$$\\text{sample size }(n):$$", 
+                  min = 10, 
+                  max = 30,
+                  step = 2,
+                  value = 10),
+      sliderInput("means_difference", 
+                  "$$\\text{means difference }(\\mu_E-\\mu_C):$$", 
+                  min = 0, 
+                  max = 2,
+                  step = 0.1, 
+                  value = 0.1),
+      sliderInput("stddev", 
+                  "$$\\text{standard deviation }(\\sigma):$$", 
+                  min = 1, 
+                  max = 2.5,
+                  step = 0.1, 
+                  value = 1),
+      sliderInput("alpha", 
+                  "$$\\text{significance level }(\\alpha)$$", 
+                  min = 0.01, 
+                  max = 0.2,
+                  step = 0.01, 
+                  value = 0.05)
+
+
+    ),
+    mainPanel(
+      plotOutput("power_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$power_plot <- renderPlot({
+      rho <- seq(0.1, 0.9, by = 0.1)
+      
+      means_difference <- as.numeric(input$means_difference)
+      sigma <- as.numeric(input$stddev)
+      alpha <- as.numeric(input$alpha)
+      z <- qnorm(1-alpha)
+      
+      nE <- as.numeric(input$sample_size)*rho
+      nC <- as.numeric(input$sample_size)*(1-rho)
+      Delta <- means_difference/(sigma*sqrt(1/nE+1/nC))
+        
+      pow <- 1-pnorm(z-Delta)
+      power_df <- tibble::tibble(rho, pow) 
+        ggplot()+
+          geom_point(data = power_df, aes(x = rho, y = pow), size = 1.5)+
+          geom_line(data = power_df, aes(x = rho, y = pow), size = 1.25)+
+          geom_line(data = tibble::tibble(x = rep(0.5, 2), y = c(0, 1)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          xlab(expression(rho))+
+          ylab("Power")+
+          scale_y_continuous(limits = c(0, 1), 
+                             breaks = seq(0, 1, by = 0.2))+
+          scale_x_continuous(breaks = seq(0.1, 0.9, by = 0.1))
+    })
+  },
+  
+  options = list(height = 500)
+)
+     
+```
+
+## What if group variances are unequal? (1 of 2)
+
+- $Y_{ik}\sim Normal(\mu_k, \sigma_k^2)$; $k = E, C$, $i = 1, 2, \ldots, n_k$
+
+    + **$\sigma_k$ assumed to be known**, but depends on the treatment group
+
+- To test $H_0: \mu_E = \mu_C$ vs. $H_1: \mu_E > \mu_C$, use $Z$-test: Reject $H_0$ at level $\alpha$, if $Z=\frac{\overline{Y}_E-\overline{Y}_C}{\sqrt{\frac{\sigma^2_E}{n_E}+\frac{\sigma^2_C}{n_C}}} > z_{1-\alpha}$
+- As before, _**Power**_ = $\text{Pr}\left(\text{Reject } H_0| n_E, n_C, \mu_E, \mu_C, \sigma_E, \sigma_C, z_{1-\alpha}\right) = 1-\Phi\left(z_{1-\alpha}-\Delta\right)$, where $\Delta = \frac{\mu_E-\mu_C}{\sqrt{\frac{\sigma^2_E}{n_E}+\frac{\sigma^2_C}{n_C}}}$
+- To maximize _**Power**_, we need to minimize $\Phi\left(z_{1-\alpha}-\Delta\right)$ $\Leftrightarrow$ to maximize $\Delta$ w.r.t. $\rho \in (0,1)$
+
+## What if group variances are unequal? (2 of 2)
+
+- $\Delta = \frac{\mu_E-\mu_C}{\sqrt{\frac{\sigma^2_1}{n\rho}+\frac{\sigma^2_2}{n(1-\rho)}}}\rightarrow \max\limits_{\rho \in (0,1)}$
+- Equivalently, $\frac{1}{n}\left(\frac{\sigma^2_1}{\rho}+\frac{\sigma^2_2}{(1-\rho)}\right)\rightarrow \min\limits_{\rho\in (0,1)}$
+- Optimal solution is $\boldsymbol{\rho_N^* = \frac{\sigma_E}{\sigma_E+\sigma_C}}$ ([_**Neyman allocation**_](https://en.wikipedia.org/wiki/Jerzy_Neyman))
+
+<span style="background-color: #6666ff; color:white">
+More variable treatment group receives greater proportion of study patients.
+</span>
+ 
+ 
+## What if group variances are unequal? -- Demo 
+
+```{r, echo = FALSE}
+shinyApp(
+  
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("sample_size", 
+                  "$$\\text{sample size }(n):$$", 
+                  min = 10, 
+                  max = 30,
+                  step = 2,
+                  value = 10),
+      sliderInput("means_difference", 
+                  "$$\\text{means difference }(\\mu_E-\\mu_C):$$", 
+                  min = 0, 
+                  max = 2,
+                  step = 0.1, 
+                  value = 0.1),
+      sliderInput("stddevE", 
+                  "$$\\text{standard deviation of group E }(\\sigma_E):$$", 
+                  min = 1, 
+                  max = 2.5,
+                  step = 0.1, 
+                  value = 1),
+      sliderInput("stddevC", 
+                  "$$\\text{standard deviation of group C }(\\sigma_C):$$", 
+                  min = 1, 
+                  max = 2.5,
+                  step = 0.1, 
+                  value = 1),
+      sliderInput("alpha", 
+                  "$$\\text{significance level }(\\alpha)$$", 
+                  min = 0.01, 
+                  max = 0.2,
+                  step = 0.01, 
+                  value = 0.05)
+    ),
+    mainPanel(
+      plotOutput("power_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$power_plot <- renderPlot({
+      rho <- seq(0.1, 0.9, by = 0.1)
+      
+      means_difference <- as.numeric(input$means_difference)
+      sigmaE <- as.numeric(input$stddevE)
+      sigmaC <- as.numeric(input$stddevC)
+      rho_star <- sigmaE/(sigmaE+sigmaC)
+      alpha <- as.numeric(input$alpha)
+      z <- qnorm(1-alpha)
+      
+      nE <- as.numeric(input$sample_size)*rho
+      nC <- as.numeric(input$sample_size)*(1-rho)
+      Delta <- means_difference/(sqrt(sigmaE^2/nE+sigmaC^2/nC))
+        
+      pow <- 1-pnorm(z-Delta)
+      power_df <- tibble::tibble(rho, pow) 
+        ggplot()+
+          geom_point(data = power_df, aes(x = rho, y = pow), size = 1.5)+
+          geom_line(data = power_df, aes(x = rho, y = pow), size = 1.25)+
+          geom_line(data = tibble::tibble(x = rep(rho_star, 2), y = c(0, 1)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          xlab(expression(rho))+
+          ylab("Power")+
+          scale_y_continuous(limits = c(0, 1), 
+                             breaks = seq(0, 1, by = 0.2))+
+          scale_x_continuous(breaks = seq(0.1, 0.9, by = 0.1))
+    })
+  },
+  
+  options = list(height = 500)
+)
+     
+```
+
+## Example: Binary outcome trial
+
+- $Y_{ik}\sim Bernoulli(p_k)$; $k = E, C$; $i = 1, 2, \ldots, n_k$
+
+    + $p_k$ = probability of a successful outcome in group $k$
+    + Denote $q_k = 1-p_k$ = probability of a "failure" in group $k$
+    
+- We want to test $H_0: p_E = p_C$ vs. $p_E > p_C$ by using (asymptotic) $Z$-test:
+
+    + Reject $H_0$ at level $\alpha$, if $Z=\frac{\widehat{p}_E-\widehat{p}_C}{\sqrt{\frac{\widehat{p}_E\widehat{q}_E}{n_E}+\frac{\widehat{p}_C\widehat{q}_C}{n_C}}} > z_{1-\alpha}$ (where $\widehat{p}_k, \widehat{q}_k$ are sample proportions)
+    + Asymptotically $\widehat{p}_k \rightarrow p_k$, $\widehat{p}_k\widehat{q}_k \rightarrow p_kq_k$, all our derivations (developed in the normal outcome case) still apply here
+    
+- Note that $\text{E}\left[Y_{ik}\right]=p_k$ and $\text{Var}\left[Y_{ik}\right]=p_kq_k$ (variances are possibly different in two groups)
+$$\rho_N^* = \frac{\sqrt{p_Eq_E}}{\sqrt{p_Eq_E}+\sqrt{p_Cq_C}}$$  (_**Neyman allocation**_)
+
+## Example: Binary outcome trial -- Demo 
+
+```{r, echo = FALSE}
+shinyApp(
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("sample_size", 
+                  "$$\\text{sample size }(n):$$", 
+                  min = 50, 
+                  max = 100,
+                  step = 5,
+                  value = 100),
+      sliderInput("probE", 
+                  "$$\\text{probability of success in group E }(p_E):$$", 
+                  min = 0.05, 
+                  max = 0.95,
+                  step = 0.05, 
+                  value = 0.05),
+      sliderInput("probC", 
+                  "$$\\text{probability of success in group C }(p_C):$$", 
+                  min = 0.05, 
+                  max = 0.95,
+                  step = 0.05, 
+                  value = 0.05),
+      sliderInput("alpha", 
+                  "$$\\text{significance level }(\\alpha)$$", 
+                  min = 0.01, 
+                  max = 0.2,
+                  step = 0.01, 
+                  value = 0.05)
+    ),
+    mainPanel(
+      plotOutput("power_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$power_plot <- renderPlot({
+      rho <- seq(0.1, 0.9, by = 0.1)
+      
+      probE <- as.numeric(input$probE)
+      probC <- as.numeric(input$probC)
+      rho_star <- sqrt(probE*(1-probE))/(sqrt(probE*(1-probE))+sqrt(probC*(1-probC)))
+      alpha <- as.numeric(input$alpha)
+      z <- qnorm(1-alpha)
+      
+      nE <- as.numeric(input$sample_size)*rho
+      nC <- as.numeric(input$sample_size)*(1-rho)
+      Delta <- (probE-probC)/(sqrt(probE*(1-probE)/nE+probC*(1-probC)/nC))
+        
+      pow <- 1-pnorm(z-Delta)
+      power_df <- tibble::tibble(rho, pow) 
+        ggplot()+
+          geom_point(data = power_df, aes(x = rho, y = pow), size = 1.5)+
+          geom_line(data = power_df, aes(x = rho, y = pow), size = 1.25)+
+          geom_line(data = tibble::tibble(x = rep(rho_star, 2), y = c(0, 1)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25, color="blue")+
+          geom_line(data = tibble::tibble(x = rep(0.5, 2), y = c(0, 1)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25, color="red")+
+          geom_text(aes(x=rho_star, y = 1, label = "Neyman"))+
+          xlab(expression(rho))+
+          ylab("Power")+
+          scale_y_continuous(limits = c(0, 1), 
+                             breaks = seq(0, 1, by = 0.2))+
+          scale_x_continuous(breaks = seq(0.1, 0.9, by = 0.1))
+    })
+  },
+  
+  options = list(height = 500)
+)
+     
+```
+
+***
+
+**Q**: What is a major limitation of Neyman allocation $\rho^* = \frac{\sqrt{p_Eq_E}}{\sqrt{p_Eq_E}+\sqrt{p_Cq_C}}$?
+
+**A**: The model parameters _**are unknown**_ to us! We are conducting the trial to gain information about $p_E$ and $p_C$. Thus Neyman allocation cannot be implemented directly!
+
+
+## II. Maximizing estimation precision
+
+- $K \geq 2$ treatment groups (e.g. different doses of a drug or different intervention strategies)
+- Primary outcome: $Y_{ik}$ follows some distribution from an exponential family (e.g. Normal, Bernoulli, Poisson, exponential, etc.)
+- $\mathbf{E}\left[Y_{ik}\right] = \mu_k$, $\mathbf{Var}\left[Y_{ik}\right] = \sigma^2_k$, $k = 1, 2, \ldots, K$
+- Study objectives:
+
+    + The vector of mean treatment effects $\boldsymbol{\mu} = (\mu_1, \mu_2, \ldots, \mu_K)$
+    + The vector of treatment contrasts $\boldsymbol{\mu}_C = (\mu_2-\mu_1, \ldots, \mu_K-\mu_1)$
+    + Etc ...
+
+
+## Design Optimization (1 of 2)
+
+- Allocation design: $\boldsymbol{\rho}=(\rho_1, \rho_2, \ldots, \rho_K)$, $0 \leq \rho_k \leq 1$ and $\sum_{k=1}^K{\rho_k} = 1$
+
+    + $\rho_k$ = target allocation proportion for the $k$-th treatment group
+    + $n\rho_k$ = sample size of the $k$-th group (integer-rounded, if necessary)
+ 
+- Design Fisher Information Matrix: $$\boldsymbol{M}(\boldsymbol{\rho}) = n\times diag\left\{\frac{\rho_1}{\sigma^2_1}, \frac{\rho_2}{\sigma^2_2}, \ldots, \frac{\rho_K}{\sigma^2_K}\right\}$$
+
+- Variance-covariance matrix of a consistent estimator (MLE) $\widehat{\boldsymbol{\mu}}=\left(\widehat{\mu}_1, \widehat{\mu}_2, \ldots, \widehat{\mu}_K\right)$ of $\boldsymbol{\mu}=\left(\mu_1, \mu_2, \ldots, \mu_K\right)$:
+
+$$\mathbf{Var}\left[\widehat{\boldsymbol{\mu}}\right]=\boldsymbol{M}^{-1}(\boldsymbol{\rho}) = \frac{1}{n}diag\left\{\frac{\sigma^2_1}{\rho_1}, \frac{\sigma^2_2}{\rho_2}, \ldots, \frac{\sigma^2_K}{\rho_K} \right\}$$
+
+- Variance-covariance matrix of a consistent estimator of the contrast vector $\boldsymbol{\mu}_C = \boldsymbol{A}^T\boldsymbol{\mu}=(\mu_2-\mu_1, \ldots, \mu_K-\mu_1)$ 
+
+$$\mathbf{Var}\left[\boldsymbol{A}^T\widehat{\boldsymbol{\mu}}\right]=\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A} = \frac{1}{n}\left(diag\left\{\frac{\sigma^2_2}{\rho_2}, \ldots, \frac{\sigma^2_K}{\rho_K} \right\}+\frac{\sigma^2_1}{\rho_1}\mathbf{1}\mathbf{1}^T\right),$$
+where $\boldsymbol{A}$ is a contrast matrix.
+
+
+## Design Optimization (2 of 2)
+
+- We are interested in minimizing "variability" of an estimated parameter of interest
+- An optimal design problem is to find an allocation $\boldsymbol{\rho}=\left(\rho_1, \rho_2,  \ldots, \rho_K\right)$ that minimizes some criterion of $\boldsymbol{M}^{-1}(\boldsymbol{\rho})$ (or $\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A}$) subject to constraints $0 \leq \rho_k \leq 1$ and $\sum_{k=1}^K{\rho_k}=1$.
+
+    + _**D-optimal**_: $\text{det}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\rho})\right\} \rightarrow \min\limits_{\boldsymbol{\rho}}$ (volume of the confidence ellipsoid for $\boldsymbol{\mu}$)
+    + _**A-optimal**_: $\text{trace}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\rho})\right\} \rightarrow \min\limits_{\boldsymbol{\rho}}$ (sum of the lengths of the major axes in the confidence ellipsoid for $\boldsymbol{\mu}$)
+    + _**D<sub>A</sub>-optimal**_: $\text{det}\left\{\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A}\right\} \rightarrow \min\limits_{\boldsymbol{\rho}}$ (volume of the confidence ellipsoid for contrast vector $\boldsymbol{\mu}_C$)
+    + _**A<sub>A</sub>-optimal**_: $\text{trace}\left\{\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A}\right\} \rightarrow \min\limits_{\boldsymbol{\rho}}$ (sum of the lengths of the major axes in the confidence ellipsoid for contrast vector $\boldsymbol{\mu}_C$)
+
+- Some of these problems can be solved _**analytically**_ (e.g. by using Lagrange multiplier minimization)
+
+
+## D-Optimal Allocation
+
+$$\text{det}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\rho})\right\}=\frac{\sigma^2_1}{\rho_1}\cdot\frac{\sigma^2_2}{\rho_2}\cdot\ldots\cdot\frac{\sigma^2_K}{\rho_K}\rightarrow\min\limits_{\boldsymbol{\rho}}$$
+
+- Equivalently: $\rho_1\cdot\rho_2\cdot\ldots\cdot\rho_K\rightarrow\max\limits_{\boldsymbol{\rho}}$
+
+- By the geometric-arithmetic mean inequality: 
+$$\left(\rho_1\cdot\rho_2\cdot\ldots\cdot\rho_K\right)^\frac{1}{K}\leq\frac{1}{K}\sum_{k=1}^K{\rho_k}=\frac{1}{K}\Rightarrow \rho_1\cdot\rho_2\cdot\ldots\cdot\rho_K \leq \left(\frac{1}{K}\right)^K$$
+
+<span style="background-color: #6666ff; color:white">
+Thus, equal allocation design $\boldsymbol{\rho}=\left(1/K, \ldots, 1/K\right)$ is D-optimal.
+</span>
+
+
+## A-Optimal Allocation
+
+$$\text{trace}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\rho})\right\}=\frac{\sigma^2_1}{\rho_1}+\frac{\sigma^2_2}{\rho_2}+\ldots+\frac{\sigma^2_K}{\rho_K}\rightarrow\min\limits_{\boldsymbol{\rho}}$$
+
+- Lagrange multiplier minimization: 
+$$\frac{\partial}{\partial{\rho_k}}\left\{\sum_{k=1}^K{\frac{\sigma^2_k}{\rho_k}+\lambda\left(\sum_{k=1}^K{\rho_k}-1\right)}\right\}=-\frac{\sigma^2_k}{\rho_k^2}+\lambda,\quad k = 1, 2, \ldots, K$$
+- Setting the derivatives to zero, and using $\sum_{k=1}^K{\rho_k} = 1$, we find the A-optimal allocation as $$\rho^{(A)}_k=\frac{\sigma_k}{\sum_{i=1}^K{\sigma_i}}, \quad k = 1, 2, \ldots, K$$
+
+- If $K = 2$, optimal solution is the Neyman allocation!
+
+- If $\sigma^2_k$'s are all equal, optimal solution is the equal allocation!
+
+
+## D<sub>A</sub>-Optimal Allocation
+
+$$\text{det}\left\{\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A}\right\} =\text{det}\left\{diag\left\{\frac{\sigma^2_2}{\rho_2}, \ldots, \frac{\sigma^2_K}{\rho_K} \right\}+\frac{\sigma^2_1}{\rho_1}\mathbf{1}\mathbf{1}^T\right\}\rightarrow\min\limits_{\boldsymbol{\rho}}$$
+
+- Optimal solution is not in closed form
+
+- Wong and Zhu (2008)<sup>1</sup> showed that D<sub>A</sub>-optimal proportions satisfy the following (nonlinear) system of equations:
+
+$$\frac{1}{\rho^*_k}-\frac{1/\sigma^2_k}{\sum_{i=1}^K{\rho^*_i/\sigma^2_i}}=0, \quad k =1, 2, \ldots, K.$$
+
+- If $\sigma^2_k$'s are all equal, the D<sub>A</sub>-optimal solution is the equal allocation!
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>1</sup> Wong, W. K., and Zhu, W.  _"Optimum treatment allocation rules under a
+variance heterogeneity model"_. Stat. Med., 27, 4581–4595 (2008).
+
+
+## D<sub>A</sub>-Optimal Allocation -- Some Properties
+
+i. When $K = 2$, the D<sub>A</sub>-optimal allocation is Neyman allocation: 
+$$\rho^*_k = \frac{\sigma_k}{\sigma_1+\sigma_2}, \quad k = 1, 2$$
+
+ii. The D<sub>A</sub>-optimal proportions satisfy: 
+$$0 \leq \rho^*_k \leq \frac{1}{K-1}, \quad k = 1, 2, \ldots, K$$
+
+iii. If $\sigma^2_k\rightarrow 0$ and $\sigma^2_k/\sigma^2_j\rightarrow 0$ for all $j \ne k$ (variance in the $k$-th group is small relative to all other group variances), then $\rho^*_k\rightarrow 0$
+
+iv. Let the $K$ treatment groups be such that $\sigma_1\geq\sigma_2\geq \ldots\sigma_K$. Then the D<sub>A</sub>-optimal proportions satisfy: $\rho^*_1\geq\rho^*_2\geq \ldots\rho^*_K$ (more variable treatment groups receive greater proportions of study subjects)
+
+
+## D<sub>A</sub>-Optimal Allocation -- Example
+
+- Binary outcome trial, $K=3$ treatment groups
+- $p_k$ probability of a successful outcome in group $k = 1, 2, 3$
+
+```{r binary-3-trt-example, echo=FALSE}
+prob_tab <- tribble(
+  ~id, ~`$p_1$`, ~`$p_2$`, ~`$p_3$`,
+  1, 0.10, 0.02, 0.02,
+  2, 0.10, 0.30, 0.50,
+  3, 0.30, 0.40, 0.60,
+  4, 0.40, 0.60, 0.80,
+  5, 0.70, 0.30, 0.80,
+  6, 0.90, 0.95, 0.99
+)
+
+# calculate D-A-optimal proportions
+prop_tab <- map(seq_len(nrow(prob_tab)), ~ {
+  id <- as.numeric(prob_tab[., 1])
+  prob <- as.numeric(prob_tab[.,])[-1]
+  sigma_vec <- sqrt(prob*(1-prob))
+  prop <- round(daoptimal(sigma_vec), 3)
+  tribble(
+    ~id, ~`$\\rho^*_1$`, ~`$\\rho^*_2$`, ~`$\\rho^*_3$`,
+    id, prop[1], prop[2], prop[3])
+}) %>% 
+  bind_rows()
+
+# join propbabilities and proportions into a single table
+inner_join(
+  prob_tab, 
+  prop_tab,
+  by = "id"
+) %>% 
+  mutate(
+    `$\\rho^*_1$`= cell_spec(`$\\rho^*_1$`, "html",
+                             color = if_else(id > 3, "red", "black")),
+    `$\\rho^*_2$`= cell_spec(`$\\rho^*_2$`, "html", 
+                             color = if_else(id > 3, "red", "black")),
+    `$\\rho^*_3$`= cell_spec(`$\\rho^*_3$`, "html",
+                             color = if_else(id > 3, "red", "black"))
+    ) %>% 
+  select(-id) %>% 
+  knitr::kable("html", escape = F) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c("Treatment success probabilities" = 3,
+                     "$D_A$-optimal allocation proportions" = 3)) %>% 
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1, 3, 5), background = "#99cfe0") %>% 
+  row_spec(c(2, 4, 6), background = "#c1e1ec") %>% 
+  column_spec(c(1, 2, 3), color = "black")
+  #row_spec(-1, background = "#c1e1ec") 
+```
+
+<span style="background-color: #6666ff; color:white">
+Q: Based on these results, what is one caveat of the D<sub>A</sub>-optimal allocation?
+</span>
+
+<span style="background-color: #6666ff; color:white">
+A: It can assign greater proportions to less successful treatments (cf. last three examples)
+</span>
+
+
+## A<sub>A</sub>-Optimal Allocation    
+
+$$\text{trace}\left\{\boldsymbol{A}^T\boldsymbol{M}^{-1}(\boldsymbol{\rho})\boldsymbol{A}\right\}=\frac{\sigma^2_2}{\rho_2}+\frac{\sigma^2_3}{\rho_3}+\ldots+\frac{\sigma^2_K}{\rho_K}+(K-1)\frac{\sigma^2_1}{\rho_1}\rightarrow\min\limits_{\boldsymbol{\rho}}$$
+
+- Lagrange multiplier minimization: 
+
+$$\frac{\partial}{\partial{\rho_k}}\left\{\sum_{k=2}^K{\frac{\sigma^2_k}{\rho_k}+(K-1)\frac{\sigma^2_1}{\rho_1}+\lambda\left(\sum_{k=1}^K{\rho_k}-1\right)}\right\}=\left\{
+\begin{array}{cl}
+  -(K-1)\frac{\sigma^2_1}{\rho_1^2}+\lambda, & k = 1 \\
+  -\frac{\sigma^2_k}{\rho_k^2}+\lambda, & k = 2, 3, \ldots, K
+\end{array}
+\right.$$
+
+
+- Setting the derivatives to zero, and using $\sum_{k=1}^K{\rho_k} = 1$, we find the A<sub>A</sub>-optimal allocation as 
+$$
+\rho^{(A)}_k=\left\{
+\begin{array}{cl}
+  \frac{\sigma_1\sqrt{K-1}}{\sigma_1\sqrt{K-1}+\sum_{i=2}^K{\sigma_i}}, & k = 1\\
+  \frac{\sigma_k}{\sigma_1\sqrt{K-1}+\sum_{i=2}^K{\sigma_i}}, & k = 2, 3, \ldots, K
+\end{array}
+\right.
+$$
+
+- If $K = 2$, optimal solution is the Neyman allocation!
+
+## Summary of Optimal Allocation Ratios$^*$
+
+<br />
+
+```{r summary-optimal-allocation, echo=FALSE}
+tribble(
+  ~" ", ~"Equal variances ($K\\geq 2$)", ~"Unequal variances ($K = 2$)", ~"Unequal variances ($K$ &gt; $2$)",  
+  "D-optimal", "$1:1:\\ldots:1$", "$1:1$", "$1:1:\\ldots:1$",
+  "A-optimal", "$1:1:\\ldots:1$", "$\\sigma_1:\\sigma_2$", "$\\sigma_1:\\sigma_2:\\ldots:\\sigma_K$",
+  "D<sub>A</sub>-optimal", "$1:1:\\ldots:1$","$\\sigma_1:\\sigma_2$", "No closed form  solution;must be found numerically",
+  "A<sub>A</sub>-optimal", "$\\sqrt{K-1}:1:\\ldots:1$", "$\\sigma_1:\\sigma_2$", "$\\sigma_1\\sqrt{K-1}:\\sigma_2:\\ldots:\\sigma_K$"
+) %>% 
+  knitr::kable("html", escape = F) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3), background = "#99cfe0") %>% 
+  row_spec(c(2,4), background = "#c1e1ec") %>% 
+  column_spec(c(1, 2), color = "black")
+  #row_spec(-1, background = "#c1e1ec") 
+```
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup> An allocation ratio $C_1:C_2:\ldots:C_K$ corresponds to the vector pf allocation proportions $\boldsymbol{\rho}=\left(\frac{C_1}{\sum_{k=1}^K{C_k}}, \frac{C_2}{\sum_{k=1}^K{C_k}}, \ldots, \frac{C_K}{\sum_{k=1}^K{C_k}}\right)$
+
+
+## Relative Efficiency
+
+- Suppose we want to compare two allocation designs: $\boldsymbol{\rho}^{(1)}$ and $\boldsymbol{\rho}^{(2)}$ w.r.t. a given design criterion
+- The relative efficiencies (of $\boldsymbol{\rho}^{(1)}$ vs. $\boldsymbol{\rho}^{(2)}$) are defined as follows:
+
+```{r relative-efficiency, echo=FALSE}
+tribble(
+  ~"Relative D-efficiency", ~"Relative A-efficiency", ~"Relative D<sub>A</sub>-efficiency", ~"Relative A<sub>A</sub>-efficiency",  
+  "$\\left(\\frac{\\text{det}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(2)})\\}}{\\text{det}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(1)})\\}}\\right)^{1/K}$", 
+  "$\\frac{\\text{trace}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(2)})\\}}{\\text{trace}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(1)})\\}}$", 
+  "$\\left(\\frac{\\text{det}\\{\\boldsymbol{A}^T\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(2)})\\boldsymbol{A}\\}}{\\text{det}\\{\\boldsymbol{A}^T\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(1)})\\boldsymbol{A}\\}}\\right)^{1/\\text{rank}(A)}$", 
+  "$\\frac{\\text{trace}\\{\\boldsymbol{A}^T\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(2)})\\boldsymbol{A}\\}}{\\text{trace}\\{\\boldsymbol{A}^T\\boldsymbol{M}^{-1}(\\boldsymbol{\\rho}^{(1)})\\boldsymbol{A}\\}}$"
+) %>% 
+  knitr::kable("html", escape = F) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(1, background = "#99cfe0") %>% 
+  column_spec(c(1, 2, 3, 4), color = "black")
+  #row_spec(-1, background = "#c1e1ec") 
+```
+
+- An allocation that is highly efficient under one criterion may have poor performance under other criteria
+
+    + Therefore, clear understanding of study objectives is essential!
+    
+## Example -- Efficiency of Equal Allocation
+
+- Binary outcome trial, $K=3$ treatment groups
+
+```{r efficiency-of-equal-allocation, fig.cap = "Relative efficiencies heatmap plots"}
+scenario <- list(
+  allocation_fcn = list(
+    doptimal,
+    aoptimal,
+    daoptimal,
+    aaoptimal
+  ),
+  efficiency_fcn = list(
+    defficiency,
+    aefficiency,
+    daefficiency,
+    aaefficiency
+  ),
+  label = list(
+    "D-efficiency",
+    "A-efficiency",
+    "D[A]-efficiency",
+    "A[A]-efficiency"
+  )
+) %>% 
+  transpose()
+
+p1 <- seq(0.05, 0.95, by=0.05)
+p2 <- seq(0.05, 0.95, by=0.05)
+
+efficiency <- function(allocation_fcn, efficiency_fcn, p1, p2) {
+  crossing(p1, p2, p3 = c(0.2, 0.5, 0.9)) %>% 
+    transpose() %>% 
+    map(~ {
+      p <- c(.$p1, .$p2, .$p3)
+      sigma_vec <- sqrt(p*(1-p))
+      rho1 <- rep(1, 3)/3
+      rho2 <- allocation_fcn(sigma_vec)
+      tibble::tibble(
+        efficiency = efficiency_fcn(rho1, rho2, sigma_vec), 
+        p1 = p[1],
+        p2 = p[2],
+        p3 = p[3]
+      )
+    }) %>% 
+    bind_rows()
+}
+
+eff <- scenario %>% 
+  map(~ {
+    allocation_fcn <- .$allocation_fcn
+    efficiency_fcn <- .$efficiency_fcn
+    label <- .$label
+    efficiency(allocation_fcn, efficiency_fcn, p1, p2)  %>% 
+      add_column(label)
+  }) %>% 
+  bind_rows() 
+
+eff %>% 
+  mutate(probability = paste0("(p[1]~~p[2]~~", p3, ")"), efficiency = 1/efficiency) %>%
+  ggplot(aes(x = p1, y = p2))+
+    geom_tile(aes(fill = efficiency))+
+    scale_fill_gradientn(colors = rainbow(7))+
+    facet_grid(probability ~ label, labeller = label_parsed)+
+    xlab(expression(p[1]))+ 
+    ylab(expression(p[2]))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 8),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 8),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+  
+```
+
+
+## Optimal Allocation to Balance Statistical Efficiency and Ethical Considerations
+
+- Clinical trials are experiments in humans; therefore there is an _**ethical imperative **_ to minimize exposure of study subjects to less successful treatment arms
+
+    + Statistical and ethical considerations may be in conflict
+    + An allocation providing a "tradeoff" between statistical efficiency and ethics may be desirable
+    
+- Consider a 2-arm _**binary outcome**_ trial ($p_E$ and $p_C$ are success rates for Experimental and Control groups, respectively)
+
+- Dual objectives:
+    
+    i. To maximize study power (Statistical Objective)
+    ii. To minimize number of treatment failures in the study (Ethical Objective)
+    
+
+##  Design Optimization
+
+- Fixed sample size: $n = n_E + n_C$ ($n_E = \rho n$ and $n_C = (1-\rho)n$)
+
+    + Study goal: to minimize expected number of treatment failures ($ENF = n_Eq_E+n_Cq_C$, where $q_E = 1-p_E$, $q_C = 1-p_C$) while maintaining study power (restricting asymptotic variance of $\widehat{p}_E-\widehat{p}_C$)
+    
+- Constrained optimization$^*$
+
+$$
+\left\{
+\begin{array}{c}
+  \min\limits_{\rho \in (0, 1)}\left\{n(\rho q_E + (1-\rho)q_C)\right\} \\
+  \text{s.t. } \frac{p_Eq_E}{n\rho}+\frac{p_Cq_C}{n(1-\rho)} = C
+\end{array}
+\right.
+$$
+($C>0$ is some constant; optimal solution does not depend on $C$)
+
+- Optimal allocation: 
+$$
+  \rho^* = \frac{\sqrt{p_E}}{\sqrt{p_E}+\sqrt{p_C}}
+$$
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Rosenberger WF, Stallard N, Ivanova A, Harper CN, Ricks ML (2001) "_Optimal adaptive designs for binary response trials_", _Biometrics_ **57**, 909-913
+
+
+## Q & A on Optimal Allocation
+
+<span style="background-color: #6666ff; color:white">
+**Q1**:  What is an attractive feature of the allocation $\rho^* = \sqrt{p_E}/(\sqrt{p_E}+\sqrt{p_C})$?.
+</span>
+
+<span style="background-color: #6666ff; color:white">
+**A1**:  It is always skewed in favor of the more succesfull tratment group (if one exists).
+</span>
+
+<span style="background-color: #ffa500; color:white">
+**Q2**:  What is a major limitation of the allocation $\rho^* = \sqrt{p_E}/(\sqrt{p_E}+\sqrt{p_C})$?.
+</span>
+
+<span style="background-color: #ffa500; color:white">
+**A2**:  The model parameters ($p_E$ and $p_C$) are unknown to us! Therefore, this allocation cannot be implemented directly.
+</span>
+
+
+## Example -- Comparison of 3 Allocations
+
+- Two-arm binary outcome trial, $n = 100$
+
+```{r example-3-binary-allocations}
+p1 <- seq(0.05, 0.95, by = 0.05)
+p2 <- seq(0.05, 0.95, by = 0.05)
+n <- 100
+
+allocations <- list(
+  equal <- function(pE, pC) {
+    list(rho = 0.5, label = "Equal~allocation")
+  },
+  neymann <- function(pE, pC) {
+    list(
+      rho = sqrt(pE*(1-pE))/(sqrt(pE*(1-pE)) + sqrt(pC*(1-pC))), 
+      label = "Neyman~allocation"
+      )
+  },
+  optimal <- function(pE, pC) {
+    list(
+      rho = sqrt(pE)/(sqrt(pE) + sqrt(pC)),
+      label = "Optimal~allocation"
+    )
+  }
+)
+
+map(allocations, ~ {
+allocation_fcn <- .  
+crossing(p1, p2) %>% 
+  as.list() %>% 
+  transpose() %>% 
+  map( ~ {
+    p <- c(.$p1, .$p2)
+    allocation <- allocation_fcn(p[1], p[2])
+    tibble::tibble(p1 = p[1], p2 = p[2], rho = allocation$rho, label = allocation$label)
+  }) %>% bind_rows()
+}) %>% 
+  bind_rows() %>% 
+  mutate(
+    Delta = (p1-p2)/sqrt(p1*(1-p1)/(n*rho)+p2*(1-p2)/(n*(1-rho))),
+    Power = 1-pnorm(qnorm(0.975)-Delta)+pnorm(qnorm(0.025)-Delta),
+    `ENF/n` = (rho*(1-p1)+(1-rho)*(1-p2))
+  ) %>% 
+  select(-Delta) %>% 
+  gather(key, value, -p1, -p2, -label) %>% 
+  ggplot(aes(x = p1, y = p2))+
+    geom_tile(aes(fill = value))+
+    scale_fill_gradientn(colors = rainbow(7))+
+    facet_grid(label ~ key, labeller = label_parsed)+
+    xlab(expression(p[1]))+ 
+    ylab(expression(p[2]))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 8),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 8),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+```
+
+
+## What about multi-arm trial? (1 of 2)
+
+- ($K > 2$)-arm binary outcome trial
+- Study goal: to minimize expected treatment failures while restricting the trace of variance-covariance matrix of estimated treatment contrasts
+
+    + Allocation: $\boldsymbol{\rho} = \left(\rho_1, \rho_2, \ldots, \rho_K\right)$ ($n_k = n\rho_k$ -- sample size for the $k$th group)
+    
+- Constrained optimization problem:
+$$
+\left\{
+\begin{array}{c}
+  \min\limits_{\boldsymbol{\rho}}\left\{n\sum_{k = 1}^K{\rho_k q_k}\right\} \\
+  \text{s. t. } \sum_{k=2}^K{\frac{p_kq_k}{\rho_k}}+(K-1)\frac{p_1q_1}{\rho_1} = C \\
+  \text{and } \sum_{k=1}^K{\rho_k} = 1
+\end{array}  
+\right.
+$$
+- Optimal solution ("_Fixed trace optimal allocation_"):
+
+$$
+  \rho_1^* = \frac{\sqrt{(K-1)p_1}}{\sqrt{(K-1)p_1}+\sum_{k=2}^K{\sqrt{p_k}}}\text{  and  } \rho_k^* = \frac{\sqrt{p_k}}{\sqrt{(K-1)p_1}+\sum_{k=2}^K{\sqrt{p_k}}}, \quad k = 2, \ldots, K 
+$$
+
+## What about multi-arm trial? (2 of 2)
+
+- Binary outcome trial, $K = 3$ treatment groups
+- $p_k$=probability of a successful outcome in group $k = 1, 2, 3$
+
+```{r binary-3-trt-fixed-trace-example, echo=FALSE}
+prob_tab <- tribble(
+  ~id, ~`$p_1$`, ~`$p_2$`, ~`$p_3$`,
+  1, 0.10, 0.02, 0.02,
+  2, 0.10, 0.30, 0.50,
+  3, 0.30, 0.40, 0.60,
+  4, 0.40, 0.60, 0.80,
+  5, 0.70, 0.30, 0.80,
+  6, 0.90, 0.95, 0.99,
+  7, 0.35, 0.65, 0.01
+)
+
+# calculate Fixed-trace-optimal proportions
+prop_tab <- map(seq_len(nrow(prob_tab)), ~ {
+  id <- as.numeric(prob_tab[., 1])
+  prob_vec <- as.numeric(prob_tab[.,])[-1]
+  prop <- round(ftoptimal(prob_vec), 3)
+  tribble(
+    ~id, ~`$\\rho^*_1$`, ~`$\\rho^*_2$`, ~`$\\rho^*_3$`,
+    id, prop[1], prop[2], prop[3])
+}) %>% 
+  bind_rows()
+
+# join propbabilities and proportions into a single table
+inner_join(
+  prob_tab, 
+  prop_tab,
+  by = "id"
+) %>% 
+  mutate(
+    `$\\rho^*_1$`= cell_spec(`$\\rho^*_1$`, "html",
+                             color = if_else(id > 2, "red", "black")),
+    `$\\rho^*_2$`= cell_spec(`$\\rho^*_2$`, "html", 
+                             color = if_else(id > 2, "red", "black")),
+    `$\\rho^*_3$`= cell_spec(`$\\rho^*_3$`, "html",
+                             color = if_else(id > 2, "red", "black"))
+    ) %>% 
+  select(-id) %>% 
+  knitr::kable("html", escape = F) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c("Treatment success probabilities" = 3,
+                     "Optimal allocation proportions$^*$" = 3)) %>% 
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1, 3, 5, 7), background = "#99cfe0") %>% 
+  row_spec(c(2, 4, 6), background = "#c1e1ec") %>% 
+  column_spec(c(1, 2, 3), color = "black")
+  #row_spec(-1, background = "#c1e1ec") 
+```
+
+<span style="background-color: #6666ff; color:white">
+Unlike in the 2-arm case, in the 3-arm case Fixed trace allocation can assign greater proportions to less successful treatments (red rows)
+</span>
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup> $\rho_1^* = \frac{\sqrt{2p_1}}{\sqrt{2p_1}+\sqrt{p_2}+\sqrt{p_2}}$, $\rho_2^* = \frac{\sqrt{p_2}}{\sqrt{2p_1}+\sqrt{p_2}+\sqrt{p_2}}$, $\rho_3^* = \frac{\sqrt{p_3}}{\sqrt{2p_1}+\sqrt{p_2}+\sqrt{p_2}}$
+
+## IV. Optimal Designs for Dose-Response Studies (1 of 2)
+
+- Binary outcome: $Y = \left\{\begin{array}{cl} 1, & \text{if toxicity} \\ 0, & \text{otherwise} \end{array}\right.$
+- _**Logistic (2-parameter) dose-response curve**_: 
+$$ 
+P(d) = \text{Pr}\left(Y=1|d\right)=\frac{1}{1+\exp{\left(-(\alpha+\beta d)\right)}}
+$$
+- $(\alpha, \beta)$ -- unknown parameters, $\beta > 0$
+- $d \in \mathbb{R}$ (after log-transformation); $d_1, \ldots, d_m$ -- distinct dose levels
+- $n_k$ obseravtions are made at dose $d_k$; $n = \sum_{k=1}^K{n_k}$ -- total sample size.
+- $\rho_k = n_k/n$ -- proportions; $\rho_k > 0$ and $\sum_{k=1}^K{\rho_k} = 1$.
+- We are interested in study designs $\xi = \left\{(d_k, \rho_k), \quad k = 1,\ldots, K\right\}$ that are
+  + Optimal for estimating $(\alpha, \beta)$ -- entire dose-response curve
+  + Optimal for estimating specific percentiles of the DR curve, e.g. $d^{(50)} = -\alpha/\beta$ (dose with 50% toxicity rate).
+
+
+## IV. Optimal Designs for Dose-Response Studies (2 of 2)
+
+```{r logistic-curve, echo=FALSE}
+shinyApp(
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("alpha", 
+                  "$$\\alpha:$$", 
+                  min = -10, 
+                  max = 10,
+                  step = 0.1,
+                  value = 0),
+      sliderInput("beta", 
+                  "$$\\beta:$$", 
+                  min = 0.5, 
+                  max = 10,
+                  step = 0.5, 
+                  value = 1)
+    ),
+    mainPanel(
+      plotOutput("logistic_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$logistic_plot <- renderPlot({
+      d <- seq(-10, 10, by = 0.05)
+      
+      alpha <- as.numeric(input$alpha)
+      beta <- as.numeric(input$beta)
+      prob <- 1/(1+exp(-(alpha+beta*d)))
+      d_min <- d[1]
+      prob_min <- 1/(1+exp(-(alpha+beta*d_min)))
+      
+      d_max <- d[length(d)]
+      prob_max <- 1/(1+exp(-(alpha+beta*d_max)))
+      
+      d_ave <- (d_min+d_max)/2
+      prob_ave <- 1/(1+exp(-(alpha+beta*d_ave)))
+
+      prob_df <- tibble::tibble(d, prob) 
+      ggplot()+
+          geom_point(data = prob_df, aes(x = d, y = prob), size = 1.5)+
+          geom_line(data = prob_df, aes(x = d, y = prob), size = 1.25)+
+          # d = d_min
+          geom_line(data = tibble::tibble(x = rep(d_min, 2), y = c(0,prob_min)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          # d = d_ave
+          geom_line(data = tibble::tibble(x = rep(d_ave, 2), y = c(0,prob_ave)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          # d = d_max
+          geom_line(data = tibble::tibble(x = rep(d_max, 2), y = c(0,prob_max)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          xlab("Dose")+
+          ylab("Probability of toxicity")+
+          scale_y_continuous(limits = c(0, 1), 
+                             breaks = round(c(prob_min, prob_ave, prob_max), 3))+
+          scale_x_continuous(breaks = c(d_min, d_ave, d_max),
+                             labels = c("minimal", "average", "maximal"))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 8),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 8),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+    })
+  },
+  
+  options = list(height = 400)
+)
+
+```
+
+## Likelihood, MLE, and Fisher Information Matrix (1 of 2)
+
+- _**Likelihood**_: $\mathcal{L}(\alpha, \beta) = \prod\limits_{i = 1}^m{P^{x_i}_i(1-P_i)^{n_i-x_i}}$, where 
+  + $x_i = \sum_{j = 1}^{n_i}Y_{ij}$ (total number of toxicities at dose $d_i$)
+  + $P_i = P(d_i) = 1/\left\{1+\exp{\left(-(\alpha+\beta d_i)\right)}\right\}$
+
+- $\log{\mathcal{L}(\alpha, \beta)} = \sum_{i = 1}^m\left\{x_i\log{P_i}+(n_i-x_i)\log{\left(1-P_i\right)}\right\}$
+- Use the chain rule for differentiation to obtain _**the system of score equations**_:
+
+$$
+  \frac{\partial}{\partial{\alpha}}\log\mathcal{L}(\alpha, \beta) = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\alpha}} = \sum_{i = 1}^m\left(x_i-n_iP_i\right) = 0 \\
+    \frac{\partial}{\partial{\beta}}\log\mathcal{L}(\alpha, \beta) = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\beta}} = \sum_{i = 1}^m\left(x_i-n_iP_i\right)d_i = 0
+$$
+
+- Solve the score equations (numerically) to obtain $(\widehat{\alpha}, \widehat{\beta})$ -- the MLE of $(\alpha, \beta)$
+
+## Likelihood, MLE, and Fisher Information Matrix (2 of 2)
+
+- _**Fisher Information Matrix**_ $\boldsymbol{M}(\alpha, \beta) = -\mathbf{E}\left(\frac{\partial^2}{\partial{\boldsymbol{\theta}}\partial{\boldsymbol{\theta}'}}\log\mathcal{L}(\boldsymbol{\theta})\right)$, where $\boldsymbol{\theta} = (\alpha, \beta)$
+- After doing some algebra, we obtain:
+
+$$
+\left(
+\begin{array}{cc}
+  \sum_{i=1}^m\rho_i\frac{e^{-a_i}}{(1+e^{-a_i})^2} & 
+  \sum_{i=1}^m\rho_i\frac{e^{-a_i}}{(1+e^{-a_i})^2}d_i \\
+  \sum_{i=1}^m\rho_i\frac{e^{-a_i}}{(1+e^{-a_i})^2}d_i & 
+  \sum_{i=1}^m\rho_i\frac{e^{-a_i}}{(1+e^{-a_i})^2}d^2_i
+\end{array}
+\right),
+$$
+
+where $\rho_i = n_i/n$ -- allocation proportion at dose $d_i$ and $a_i = \alpha+\beta d_i$
+
+- We are interested in finding:
+
+    + _**D-optimal design**_ that minimizes $\text{det}\boldsymbol{M}^{-1}(\alpha, \beta)$
+    + _**A-optimal design**_ that minimizes $\text{trace}\boldsymbol{M}^{-1}(\alpha, \beta)$
+    
+
+## D-optimal Design$^*$
+
+_**Result 1**_: The design $\left\{(d_1^*, 0.5), (d_2^*, 0.5)\right\}$, where $d_1^*$ and $d_2^*$ satisfy: 
+$$
+\begin{array}{c}
+  \alpha + \beta d_1^* = -C_D \\
+    \alpha + \beta d_2^* = C_D
+\end{array}
+$$
+is D-optimal.
+
+- $C_D = 1.5434$ -- it is obtained by maximizing the function $\frac{c^2e^{2c}}{(1+e^c)^4}$
+```{r logistic-curve-and-d-optimal-design, echo=FALSE}
+shinyApp(
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("alpha", 
+                  "$$\\alpha:$$", 
+                  min = -10, 
+                  max = 10,
+                  step = 0.1,
+                  value = 0),
+      sliderInput("beta", 
+                  "$$\\beta:$$", 
+                  min = 0.5, 
+                  max = 10,
+                  step = 0.5, 
+                  value = 1)
+    ),
+    mainPanel(
+      plotOutput("logistic_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$logistic_plot <- renderPlot({
+      d <- seq(-10, 10, by = 0.05)
+      
+      alpha <- as.numeric(input$alpha)
+      beta <- as.numeric(input$beta)
+      prob <- 1/(1+exp(-(alpha+beta*d)))
+      xi_dopt <- list(
+        x = (c(-1.5434, 1.5434)-alpha)/beta,
+        w = c(0.5, 0.5)
+      )
+  model <- tibble::tibble(
+    x = d, 
+    y = prob
+  )
+  design <- tibble::tibble(x = xi_dopt$x, w = xi_dopt$w)                    
+
+  ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    xlab("Dose")+
+    ylab("Probability")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 0.25, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(xi_dopt$x), 2))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "D-optimal allocation proportion", breaks = round(xi_dopt$w, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 8),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 8),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+    })
+  },
+  
+  options = list(height = 400)
+)
+
+```
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Mathew T, Sinha BK (2001) "_Optimal designs for binary data under logistic regression_", _Journal of Statistical Planning and Inference_ **93**, 295-307
+
+
+## A-optimal Design$^*$
+
+- There is no complete solution to the A-optimal problem!
+- Within the class of _**symmetric designs**_, the A-optimal design is given by $\left\{(c, 0.5), (-c, 0.5)\right\}$, where $c$ is obtained by minimizing the function
+
+$$
+  \frac{\alpha^2+\beta^2}{c^2e^c/(1+e^c)^2}+ \frac{1}{e^c/(1+e^c)^2}
+$$
+
+- Within the class of _**two-point designs**_ $\left\{(c_1, \rho), (c_2, 1-\rho)\right\}$, the A-optimal design is found numerically, by minimizing w.r.t. $c_1, c_2$, and $\rho$ the function
+$$
+  \frac{\rho C_1(\beta^2+(c_1-\alpha)^2)+(1-\rho)C_2(\beta + (c_2-\alpha)^2)}{(\rho C_1 + (1-\rho)C_2)(\rho c_1^2C_1+(1-\rho)c_2^2C_2) - (\rho c_1C_1 + (1-\rho)c_2C_2)^2},
+$$
+where $C_i = \frac{e^{-c_i}}{(1+e^{-c_i})^2}, \quad i = 1, 2$.
+
+- Thus, in the latter case, both the A-optimal dose-levels and allocation proportions depend on $(\alpha, \beta)$
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Mathew T, Sinha BK (2001) "_Optimal designs for binary data under logistic regression_", _Journal of Statistical Planning and Inference_ **93**, 295-307
+
+
+## Examples -- A-optimal Designs
+
+- $(\alpha, \beta) = (10, 5)$
+- _**two-point design**_: $\left\{(-2.38, 0.59), (2.38, 0.41)\right\}$, $\text{trace}\boldsymbol{M}(\alpha, \beta) = 287.29$
+
+- _**two-point symmetric design**_: $\left\{(-2.33, 0.5), (2.33, 0.5)\right\}$, $\text{trace}\boldsymbol{M}(\alpha, \beta) = 297.31$
+
+```{r example-logistic-a-optimal}
+
+d <- seq(-4, 3, by = 0.05)
+      
+alpha <-10
+beta <- 5
+
+prob <- 1/(1+exp(-(alpha+beta*d)))
+xi1_aopt <- list(
+  x = c(-2.33, 2.33),
+  w = c(0.5, 0.5)
+)
+
+xi2_aopt <- list(
+  x = c(-2.38, 2.38),
+  w = c(0.5944, 0.4056)
+)
+      
+model <- bind_rows(
+  tibble::tibble(x = d, y = prob, class = "two-point symmetric"),
+  tibble::tibble(x = d, y = prob, class = "two-point")
+)
+
+design <- bind_rows(
+  tibble::tibble(x = xi1_aopt$x, w = xi1_aopt$w, class = "two-point symmetric"),
+  tibble::tibble(x = xi2_aopt$x, w = xi2_aopt$w, class = "two-point")
+)
+
+ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    xlab("Dose")+
+    ylab("Probability")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 0.25, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = c(-3, -2, 2, 3))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "D-optimal allocation proportion", breaks = sort(c(round(xi1_aopt$w, 2), round(xi2_aopt$w, 2)))))+
+  facet_grid(~ class)+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 8),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 8),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 12),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 12),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+
+```
+
+## Homework for Lecture #2 (1 of 4)
+
+_**Problem 1**_: Consider a 2-arm trial with normal outcomes and equal variances (when balanced allocation $(0.5, 0.5)$ is optimal). Let $\delta = \frac{\mu_E-\mu_C}{\sigma}$ denote the standardized mean difference, a.k.a. "effect size"
+
+(1) Write down an analytical expression for _**Power**_ in terms of $\delta, n, \rho, z_{1-\alpha}$
+(2) Consider 3 allocation strategies: $1:1$ ($\rho = 0.5$); $2:1$ ($\rho = 2/3$); $3:1$ ($\rho = 3/4$). Assuming effect size $\delta = 0.5$ and significance level $\alpha = 0.05$, plot the _**Power**_ curve for each of the three allocation strategies for $n = 25, 26, \ldots, 199, 200$.
+(3) From (2), what sample size is requiered to achive 80% (90%) power? Fill out the table: 
+
+```{r problem1-table, echo=FALSE}
+tab <- tibble::tibble(
+  `Allocation` = c('1:1', '2:1', '3:1'),
+  `Sample size for 80% power` = c('', '', ''),
+  `Sample size for 90% power` = c('', '', '')
+)
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3), background = "#99cfe0") %>% 
+  row_spec(2, background = "#c1e1ec")
+```
+
+## Homework for Lecture #2 (2 of 4)
+
+_**Problem 2**_: Consider a 2-arm trial with normal outcomes and unequal variances. Suppose the study goal is to estimate treatment difference $(\mu_E-\mu_C)$. In this case, the D<sub>A</sub>-allocation is Neyman allocation: $(\rho^*, 1-\rho^*)$, where $\rho^* = \sigma_E/(\sigma_E+\sigma_C)$.
+
+(1) Show that the relative efficiency (*RE*) of equal alocation $(0.5, 0.5)$ vs. D<sub>A</sub>-optimal allocation is $RE = \frac{\left(\sigma_E+\sigma_C\right)^2}{2(\sigma_E^2+\sigma_C^2)}$
+(2) Show that if $\sigma_E = 0.5\sigma_C$ or $\sigma_E = 2\sigma_C$, then $RE = 0.9$
+(3) Show that if $\frac{\sigma_E}{\sigma_C}\rightarrow 0$ or $\frac{\sigma_C}{\sigma_E}\rightarrow +\infty$ (one of the variances is much larger than the other one), then $RE\rightarrow 0.5$
+
+
+## Homework for Lecture #2 (3 of 4)
+
+_**Problem 3**_: Consider a 2-arm trial with binary outcomes, where success rates for the experimental and control groups are $p_E$ and $p_C$ respectively. The Neyman allocation is $(\rho^*, 1-\rho^*)$, where 
+$$\rho^* = \frac{\sqrt{p_E(1-p_E)}}{\sqrt{p_E(1-p_E)}+\sqrt{p_C(1-p_C)}}.$$
+
+(1) Show that Neyman allocation assigns greater proportion of patients to an inferior (less successful) treatment arm, if $p_E + p_C > 1$
+(2) Under which two conditions is Neyman allocation the same as the equal allocation (0.5, 0.5)? 
+
+## Homework for Lecture #2 (4 of 4)
+
+_**Problem 4**_: Consider a toxicology study where the goal is to estimate the dose-toxicity relationship, assumed to follow a 2-parameter logistic model: $\text{Pr}\left(Y=1|d\right) = 1/\left\{1+\exp{\left(-(\alpha+\beta d)\right)}\right\}$. A pilot study was conducted and the results were as follows:
+
+```{r problem4-table, echo=FALSE}
+alpha <- 1
+beta <- 1
+
+d <- c(-1.5, 0, 1.5)
+logistic_fcn <- function(dose, a, b) {1/(1+exp(-a-b*dose))}
+
+dose <- sample(d, 10, TRUE)
+prob <- logistic_fcn(dose, alpha, beta)
+n <- map_dbl(d, ~ sum(as.numeric(. == dose)))
+Y <- rbinom(length(dose), 1, prob) 
+x <- map_dbl(d, ~ sum(Y[. == dose]))
+  
+d <- c(-1.5, 0, 1.5)
+n <- c(4, 2, 4)
+x <- c(1, 1, 4)
+  
+tab <- tibble::tibble(
+  `$d_i$` = d,
+  `$n_i$` = n,
+  `$x_i$` = x
+)
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3), background = "#99cfe0") %>% 
+  row_spec(2, background = "#c1e1ec")
+```
+
+(1) Fit a logistic model to the data, obtain the MLE $(\widehat{\alpha}, \widehat{\beta})$ of $(\alpha, \beta)$ and its variance-covariance matrix.
+(2) Suppose we want to design a new study. Based on the results from (1), what should be D-optimal and A-optimal designs?
+
+
+## Backup slides
+
+
+## FIM derivation for 2-parameter logistic model
+
+- _**Likelihood**_: $\mathcal{L}(\alpha, \beta) = \prod\limits_{i=1}^m{P_i^{x_i}(1-P_i)^{n_i-x_i}}$, where
+
+    + $x_i = \sum_{i = 1}^{n_i}Y_{ij}$ (total number of toxicities at dose $d_i$)
+    + $P_i = P(d_i) = 1/\left\{1+\exp{\left(-(\alpha+\beta d_i)\right)}\right\}$
+
+- $\log{\mathcal{L}(\alpha, \beta)} = \sum_{i = 1}^m\left\{x_i\log{P_i}+(n_i-x_i)\log{(1-P_i)}\right\}$
+- $\frac{\partial}{\partial{\alpha}}\log{\mathcal{L}(\alpha, \beta)} = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\alpha}} = \left[\frac{\partial{P_i}}{\partial{\alpha}} = P_i(1-P_i)\right] = \sum_{i = 1}^m{(x_i-n_iP_i)}$
+- $\frac{\partial}{\partial{\beta}}\log{\mathcal{L}(\alpha, \beta)} = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\beta}} = \left[\frac{\partial{P_i}}{\partial{\beta}} = P_i(1-P_i)d_i\right] = \sum_{i = 1}^m{(x_i-n_iP_i)d_i}$
+- $\frac{\partial^2}{\partial{\alpha^2}}\log{\mathcal{L}(\alpha, \beta)} = \frac{\partial}{\partial{\alpha}}\sum_{i = 1}^m{(x_i-n_iP_i)} = -\sum_{i = 1}^m{n_iP_i(1-P_i)}$
+- $\frac{\partial^2}{\partial{\alpha}\partial{\beta}}\log{\mathcal{L}(\alpha, \beta)} = \frac{\partial}{\partial{\beta}}\sum_{i = 1}^m{(x_i-n_iP_i)} = -\sum_{i = 1}^m{n_iP_i(1-P_i)d_i}$
+- $\frac{\partial^2}{\partial{\beta^2}}\log{\mathcal{L}(\alpha, \beta)} = \frac{\partial}{\partial{\beta}}\sum_{i = 1}^m{(x_i-n_iP_i)d-i} = -\sum_{i = 1}^m{n_iP_i(1-P_i)d_i^2}$
+
