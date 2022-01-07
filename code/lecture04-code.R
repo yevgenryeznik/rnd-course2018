@@ -44,13 +44,13 @@ CRD <- function(w, nsbj) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = "CRD",
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = rep(0, nsbj)
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]")))%>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = "CRD", .before = 1)
@@ -79,13 +79,13 @@ RAR <- function(w, nsbj) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = "RAR",
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]"))) %>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = "RAR", .before = 1)
@@ -119,13 +119,13 @@ TMD <- function(w, nsbj) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = "TMD",
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]"))) %>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = "TMD", .before = 1)
@@ -155,13 +155,13 @@ BUD <- function(w, nsbj, lambda) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = paste0("BUD (",lambda, ")"),
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]")))%>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = paste0("BUD (",lambda, ")"), .before = 1)
@@ -192,13 +192,13 @@ MWUD <- function(w, nsbj, alpha) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = paste0("MWUD (",alpha, ")"),
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]")))%>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = paste0("MWUD (",alpha, ")"), .before = 1)
@@ -240,13 +240,13 @@ DL <- function(w, nsbj, a){
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = paste0("DL (",a, ")"),
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]")))%>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = paste0("DL (",a, ")"), .before = 1)
@@ -281,13 +281,13 @@ DBCD <- function(w, nsbj, gm){
   } 
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = paste0("DBCD (",gm, ")"),
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]")))%>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = paste0("DBCD (",gm, ")"), .before = 1)
@@ -351,13 +351,13 @@ MaxEnt <- function(w, nsbj, eta) {
   
   # output
   list(
-    op = data_frame(
+    op = tibble::tibble(
       procedure = paste0("MaxEnt (",eta, ")"),
       subject = seq_len(nsbj),
       imbalance = imb,
       FI = map_dbl(subject, ~ mean(fi[seq_len(.)]))
     ),
-    prob = as_data_frame(prob) %>% 
+    prob = as_tibble::tibble(prob) %>% 
       set_names(map_chr(seq_along(w), ~ paste0("pi[", ., "]"))) %>% 
       add_column(subject = seq_len(nsbj), .before = 1) %>% 
       add_column(procedure = paste0("MaxEnt (",eta, ")"), .before = 1)
