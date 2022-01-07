@@ -1,0 +1,1649 @@
+---
+title: "Lecture 8:  \n Optimal and Adaptive Designs for Quantal Dose-Response Problems"
+author: 
+  - Yevgen Ryeznik <sup>&copy;</sup> (Department of Mathematics, Uppsala University)
+  - Oleksandr Sverdlov <sup>&copy;</sup> (Early Development Biostatistics, Novartis Institutes for Biomedical Research)
+css: style.css
+runtime: shiny
+output: 
+  slidy_presentation:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+library(shiny)
+library(tidyverse)
+library(kableExtra)
+
+source("./code/lecture08-code.R")
+knitr::opts_chunk$set(echo = FALSE, fig.width = 8, fig.height = 6, fig.align = "center")
+```
+
+## Agenda
+
+1. Parametric Estimation of Dose-Toxicity Curve
+2. Optimal Designs for a 2-parameter Logistic Model
+3. Adaptive Optimal Designs
+
+## Paracelsus (1493 - 1541)
+
+<div class="column-left">
+<img src="./figures/lecture08-fig01-Paracelsus.jpg" width="90%" />
+</div>
+
+<div class="column-right">
+_"All substances are poisons; there is none which is not a poison. **The right dose** differentiates a poison and a remedy."_
+</div>
+
+## Dose-Response Model Problem -- Background
+
+- Dose-response data arise in a variety of different biomedical areas (_**Morgan 1992**_$^*$)
+- For example, in toxicology, the goal is to study the relationship between the dose and the probability of a toxic outcome
+
+    + On an individual level, one can increase the dose without encountering toxicity up to some threshold, at which and above which, the individual will suffer toxicity
+    + On a population level, at each dose we have the _**probability of toxicity**_
+    + A monotone increasing relationship between dose and probability of toxicity is often a feasible assumption
+
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Morgan BJT (1992) "_Analysis of Quantal Response Data._", _Springer-Science \& Business Media_ **B.V**
+
+
+## Phase I Clinical Trials in Cancer
+
+- Typically small, uncontrolled (no placebo control group), sequential study of patients with the disease
+- Designed to determine the _**maximum tolerated dose (MTD)**_ of the experimental drug (cytotoxic compound)
+
+    + The MTD is thought to provide clinical efficacy with “acceptable” level of side effects (toxicity) in subsequent studies
+    + Accurate determination of the MTD is critical, since it will be taken forward for testing in Phase II clinical trials
+
+- Toxicity (side effects) are severe in cancer; e.g. myelosuppression, immune suppression, nausea, vomiting, etc. $\Rightarrow$ design considerations are particularly important
+
+    + Balance between individual and collective ethics: maximum information from the minimum number of study patients
+
+
+## Statistical Methodology of Phase I Clinical Trials    
+
+- Monotone relationship between the dosage and the risk of toxicity
+- Two different philosophies in the MTD definition$^*$:
+
+    1. Risk of toxicity is a sample statistic
+    2. Risk of toxicity is a probability, and the MTD is a quantile of a monotonic dose–toxicity curve, to be estimated based on experimental data
+    
+- In our presentation, we focus on the latter approach (2)
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Rosenberger WF, Haines LM (2002) "_Competing designs for phase I clinical trials: a review._", _Statistics in Medicine_ **21**, 2757 -- 2770
+
+
+## Dose-Toxicity Model
+
+- $\Omega = \{d_1 < d_2 < \ldots < d_K\}$ -- _set of pre-specified doses to be investigated in the study_
+- **Binary outcome**: $$Y = \left\{\begin{array}{lr} 1, & \text{if toxicity} \\ 0, & \text{otherwise}\end{array}\right.$$
+- $P(d) = P\left(Y = 1| d\right)$ -- probability of toxocity at dose $d$
+- A sensible assumption is that $P(d)$ is monotone increasing in $d$
+- Both parametric and nonparametric models for $P(d)$ can be considered
+- **Parametric** model: $P(d) = F(\alpha + \beta d)$, where $F(\cdot)$ is a cumulative distribution function, e.g:
+
+    + $F(x) = 1/(1+e^{-x})$, $x\in \mathbb{R}$ -- logistic
+    + $F(x) = \frac{1}{\sqrt{2\pi}}\int\limits_{-\infty}^x{e^{-t^2/2}dt}$, $x \in \mathbb{R}$ -- probit
+
+## Logistic Model
+
+```{r logistic-curve, echo=FALSE}
+shinyApp(
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      sliderInput("alpha", 
+                  "$$\\alpha:$$", 
+                  min = -10, 
+                  max = 10,
+                  step = 0.1,
+                  value = 0),
+      sliderInput("beta", 
+                  "$$\\beta:$$", 
+                  min = 0.5, 
+                  max = 10,
+                  step = 0.5, 
+                  value = 1)
+    ),
+    mainPanel(
+      plotOutput("logistic_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$logistic_plot <- renderPlot({
+      d <- seq(-10, 10, by = 0.05)
+      
+      alpha <- as.numeric(input$alpha)
+      beta <- as.numeric(input$beta)
+      prob <- 1/(1+exp(-(alpha+beta*d)))
+      d_min <- d[1]
+      prob_min <- 1/(1+exp(-(alpha+beta*d_min)))
+      
+      d_max <- d[length(d)]
+      prob_max <- 1/(1+exp(-(alpha+beta*d_max)))
+      
+      d_ave <- (d_min+d_max)/2
+      prob_ave <- 1/(1+exp(-(alpha+beta*d_ave)))
+
+      prob_df <- tibble::tibble(d, prob) 
+      ggplot()+
+          geom_point(data = prob_df, aes(x = d, y = prob), size = 1.5)+
+          geom_line(data = prob_df, aes(x = d, y = prob), size = 1.25)+
+          # d = d_min
+          geom_line(data = tibble::tibble(x = rep(d_min, 2), y = c(0,prob_min)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          # d = d_ave
+          geom_line(data = tibble::tibble(x = rep(d_ave, 2), y = c(0,prob_ave)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          # d = d_max
+          geom_line(data = tibble::tibble(x = rep(d_max, 2), y = c(0,prob_max)), 
+                    aes(x = x, y = y), linetype="dashed", size = 1.25)+
+          xlab("Dose")+
+          ylab("Probability of toxicity")+
+          scale_y_continuous(limits = c(0, 1), 
+                             breaks = round(c(prob_min, prob_ave, prob_max), 3))+
+          scale_x_continuous(breaks = c(d_min, d_ave, d_max),
+                             labels = c("minimal", "average", "maximal"))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 14)
+    )
+    })
+  },
+  
+  options = list(height = 400)
+)
+
+```
+
+- $\alpha$ and $\beta$ are unknown parameters, $\beta > 0$ (slope)
+- some other important parameters:
+    
+    + $D_{50} = -\alpha/\beta$ -- dose for which $P\left(D_{50}\right) = 0.5$
+    + Let $\gamma = \log\left(\frac{\Gamma}{1-\Gamma}\right) \Rightarrow D_{100\Gamma} = \frac{\gamma-\alpha}{\beta}$ -- $100\times \Gamma$-th percentile of $P(d)$: the dose for which $P\left(D_{100\Gamma}\right) = \Gamma$
+    
+
+## 1. Estimation of Logistic Dose-Toxicity Curve
+
+- Data structure: $\left\{(d_i, n_i, x_i), \quad i = 1, 2, \ldots, m\right\}$
+
+    + $d_i = i$-th dose level
+    + $n_i$ = number of subjects exposed at $d_i$ (we assume each subject in the study is assigned only to one dose)
+    + $x_i = \sum\limits_{j = 1}^{n_i}Y_{ij}$ = number of toxicities at $d_i$
+    + $x_i\sim Binomial(n_i, P_i)$, where $P_i = 1/(1+\exp{\left(-(\alpha+\beta d_i)\right)})$
+    
+- Estimation of $P(d)$ can be done using parametric methods (e.g. maximum likelihood estimator, MLE) or nonparametric methods (e.g. isotonic regression)
+- **In this lecture, we shall focus on MLE**
+
+    + This will enable to look at optimal designs for various experimental objectives
+    
+
+## Likelihood and MLE
+
+- _**Likelihood**_: $\mathcal{L}(\alpha, \beta) = \prod\limits_{i = 1}^m{P^{x_i}_i(1-P_i)^{n_i-x_i}}$, where $P_i = P(d_i) = 1/\left(1+e^{-(\alpha+\beta d_i)}\right)$
+- $\log{\mathcal{L}(\alpha, \beta)} = \sum_{i = 1}^m\left\{x_i\log{P_i}+(n_i-x_i)\log{\left(1-P_i\right)}\right\}$
+- Use the chain rule for differentiation to obtain _**the system of score equations**_:
+
+$$
+  \frac{\partial}{\partial{\alpha}}\log\mathcal{L}(\alpha, \beta) = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\alpha}} = \sum_{i = 1}^m\left(x_i-n_iP_i\right) = 0 \\
+    \frac{\partial}{\partial{\beta}}\log\mathcal{L}(\alpha, \beta) = \sum_{i = 1}^m\left\{\frac{x_i}{P_i}-\frac{n_i-x_i}{1-P_i}\right\}\frac{\partial{P_i}}{\partial{\beta}} = \sum_{i = 1}^m\left(x_i-n_iP_i\right)d_i = 0
+$$
+
+- Solve the score equations (numerically) to obtain $(\widehat{\alpha}, \widehat{\beta})$ -- the MLE of $(\alpha, \beta)$
+
+    + By invariance property of MLEs, other parameters can be readily estimated, e.g. $D_{50} = -\widehat{\alpha}/\widehat{\beta}$
+    
+    
+## Fisher Information Matrix
+
+- $FIM = \boldsymbol{M}(\alpha, \beta) = -\mathbf{E}\left(\frac{\partial^2}{\partial{\boldsymbol{\theta}}\partial{\boldsymbol{\theta}'}}\log\mathcal{L}(\boldsymbol{\theta})\right)$, where $\boldsymbol{\theta} = (\alpha, \beta)$
+
+    + $\frac{\partial^2}{\partial\alpha^2}\log\mathcal{L}(\alpha, \beta) = \frac{\partial}{\partial\alpha}\sum_{i = 1}^m{(x_i - n_iP_i)} = -\sum_{i = 1}^m{n_iP_i(1 - P_i)}$ 
+    + $\frac{\partial^2}{\partial\alpha\partial\beta}\log\mathcal{L}(\alpha, \beta) = \frac{\partial}{\partial\beta}\sum_{i = 1}^m{(x_i - n_iP_i)} = -\sum_{i = 1}^m{n_iP_i(1 - P_i)d_i}$
+    + $\frac{\partial^2}{\partial\beta^2}\log\mathcal{L}(\alpha, \beta) = \frac{\partial}{\partial\beta}\sum_{i = 1}^m{(x_i - n_iP_i)d_i} = -\sum_{i = 1}^m{n_iP_i(1 - P_i)d^2_i}$
+    
+- After doing some algebra, we obtain:
+
+$$
+\boldsymbol{M}(\alpha, \beta) = n\left(
+\begin{array}{cc}
+  \sum_{i=1}^m\rho_i\frac{e^{-a_i}}{(1+e^{-a_i})^2} & 
+  \sum_{i=1}^m\rho_id_i\frac{e^{-a_i}}{(1+e^{-a_i})^2} \\
+  \sum_{i=1}^m\rho_id_i\frac{e^{-a_i}}{(1+e^{-a_i})^2} & 
+  \sum_{i=1}^m\rho_id^2_i\frac{e^{-a_i}}{(1+e^{-a_i})^2}
+\end{array}
+\right),
+$$
+
+where $\rho_i = n_i/n$ -- allocation proportion at dose $d_i$ and $a_i = \alpha+\beta d_i$
+
+## Confidence Intervals for $\alpha$ and $\beta$
+
+- $(\widehat{\alpha}, \widehat{\beta}) \sim$ asymptotically normal with mean $(\alpha, \beta)$ and variance $\boldsymbol{M}^{-1}(\alpha, \beta)$
+- Therefore, $\widehat{\text{Var}}(\widehat{\alpha}, \widehat{\beta}) \approx \boldsymbol{M}^{-1}(\widehat{\alpha}, \widehat{\beta})$
+- Once we have $(\widehat{\alpha}, \widehat{\beta})$ and $\boldsymbol{M}^{-1}(\widehat{\alpha}, \widehat{\beta})$, the asymptotic 95\% confidence intervals (CIs) for $\alpha$ and $\beta$ can be constructed as follows:
+
+    + $\widehat{\alpha}\pm 1.96\sqrt{\text{Var}(\widehat{\alpha})}$
+    + $\widehat{\beta}\pm 1.96\sqrt{\text{Var}(\widehat{\beta})}$
+    
+- We are also interested in finding 95\% CIs for the following parameters (which are nonlinear functions of $(\alpha, \beta)$):
+
+    + $P(d) = 1/\left(1+e^{-(\alpha+\beta d)}\right)$ ($d$ is not necessarily among the ones tested in a study)
+    + $D_{50} = -\alpha/\beta$
+    + $D_{100\Gamma} = (\gamma-\alpha)/\beta$, where $\gamma = \log\left(\frac{\Gamma}{1-\Gamma}\right)$ for some $\Gamma \in (0, 1)$
+    
+    
+## Delta Method
+
+- Suppose $X$ and $Y$ are random variables with nonzero means $\mu_X$ and $\mu_Y$, respectively
+- Let $g(X, Y)$ be some differentiable function (and estimator of some parameter). _**The delta method**_ (based on the first-order Taylor series expansion of $g(X, Y)$) posits that:
+
+    + $\mathbf{E}\left(g(X, Y)\right)\approx g(\mu_X, \mu_Y)$
+    + $\mathbf{Var}\left(g(X, Y)\right)\approx \left\{\frac{\partial g}{\partial X}(\mu_X, \mu_Y)\right\}^2\mathbf{Var}\left(X\right)+\left\{\frac{\partial g}{\partial Y}(\mu_X, \mu_Y)\right\}^2\mathbf{Var}\left(Y\right)+2\frac{\partial g}{\partial X}(\mu_X, \mu_Y)\frac{\partial g}{\partial Y}(\mu_X, \mu_Y)\mathbf{cov}\left(X, Y\right)$
+    
+- The delta method will help us to construct CI's for the nonlinear functions of $(\alpha, \beta)$
+- Consider MLE $(\widehat{\alpha}, \widehat{\beta})$ and two different functions $g$:
+
+    + $g(\widehat{\alpha}, \widehat{\beta}) = \widehat{\alpha}+\widehat{\beta}d \Rightarrow \frac{\partial g}{\partial \widehat{\alpha}} = 1;\text{ }\frac{\partial g}{\partial \widehat{\beta}} = d \Rightarrow \mathbf{Var}\left(\widehat{\alpha}+\widehat{\beta}d\right)\approx \mathbf{Var}\left(\widehat{\alpha}\right)+d^2\mathbf{Var}\left(\widehat{\beta}\right)+2d\mathbf{cov}\left(\widehat{\alpha}, \widehat{\beta}\right)$
+    + $g(\widehat{\alpha}, \widehat{\beta}) = -\widehat{\alpha}/\widehat{\beta}\Rightarrow \frac{\partial g}{\partial \widehat{\alpha}} = -\frac{1}{\widehat{\beta}};\text{ }\frac{\partial g}{\partial \widehat{\beta}} = \frac{\widehat{\alpha}}{\widehat{\beta}^2} \Rightarrow \mathbf{Var}\left(-\frac{\widehat{\alpha}}{\widehat{\beta}}\right)\approx \frac{1}{\widehat{\beta}^2}\mathbf{Var}\left(\widehat{\alpha}\right)+\frac{\widehat{\alpha}^2}{\widehat{\beta}^4}\mathbf{Var}\left(\widehat{\beta}\right)-2\frac{\widehat{\alpha}}{\widehat{\beta}^3}\mathbf{cov}\left(\widehat{\alpha}, \widehat{\beta}\right)$
+    
+
+## Confidence Interval for $P(d) = \frac{1}{1+e^{-(\alpha+\beta d)}}$
+
+- First, condtruct 95\% CI for $(\alpha+\beta d)$:
+
+    + By delta method, $\mathbf{Var}\left(\widehat{\alpha}+\widehat{\beta}d\right)\approx \mathbf{Var}\left(\widehat{\alpha}\right)+d^2\mathbf{Var}\left(\widehat{\beta}\right)+2d\mathbf{cov}\left(\widehat{\alpha}, \widehat{\beta}\right)$
+    + 95\% CI is $\mathcal{R} = \left(\widehat{\alpha}+\widehat{\beta}d\right)\pm1.96\sqrt{\mathbf{Var}\left(\widehat{\alpha}+\widehat{\beta}d\right)}$
+    
+- $P(d) = \frac{1}{1+e^{-(\alpha+\beta d)}}$ is a monotone transformation of $(\alpha+\beta d) \Rightarrow$ the 95\% CI for $P(d)$ can be obtained as $\left(\frac{1}{1+e^{-LCL}}, \frac{1}{1+e^{-UCL}}\right)$, where $LCL$ and $UCL$ are lower and upper 95\% confidence limits of $\mathcal{R}$
+
+
+## Confidence Interval for $D_{50}$ and $D_{100\Gamma}$
+
+
+- Take $\widehat{D}_{50} = -\frac{\widehat{\alpha}}{\widehat{\beta}}$
+
+    + By delta method: $\mathbf{Var}\left(\widehat{D}_{50}\right) = \frac{1}{\widehat{\beta}^2}\left(\mathbf{Var}\left(\widehat{\alpha}\right)+\widehat{D}^2_{50}\mathbf{Var}\left(\widehat{\beta}\right)+2\widehat{D}_{50}\mathbf{cov}\left(\widehat{\alpha}, \widehat{\beta}\right)\right)$
+    + Then, 95\% asymptotic CI for $D_{50} = -\frac{\alpha}{\beta}$ is $\widehat{D}_{50}\pm1.96\sqrt{\mathbf{Var}\left(\widehat{D}_{50}\right)}$
+
+- Take $\widehat{D}_{100\Gamma} = \frac{\gamma-\widehat{\alpha}}{\widehat{\beta}}$, where $\gamma = \log\left(\frac{\Gamma}{1-\Gamma}\right)$
+
+    + By delta method: $\mathbf{Var}\left(\widehat{D}_{100\Gamma}\right) = \frac{1}{\widehat{\beta}^2}\left(\mathbf{Var}\left(\widehat{\alpha}\right)+\widehat{D}^2_{100\Gamma}\mathbf{Var}\left(\widehat{\beta}\right)+2\widehat{D}_{100\Gamma}\mathbf{cov}\left(\widehat{\alpha}, \widehat{\beta}\right)\right)$
+    + Then, 95\% asymptotic CI for $D_{100\Gamma} = \frac{\gamma-\alpha}{\beta}$ is $\widehat{D}_{100\Gamma}\pm1.96\sqrt{\mathbf{Var}\left(\widehat{D}_{100\Gamma}\right)}$
+
+    
+## Example: Phase I Clinical Trial (1 of 4)
+
+- Phase I clinical trial that was conducted at the University of Maryland School of Medicine, Baltimore. The trial involved 34 patients with an acute case of leukemia (_**Karp et al. 2001**_$^*$)
+- The chemotherapeutic agent R115777 was used in dose levels (mg) 100, 300, 600, 900, 1200. A binary toxic/nontoxic response was observed
+
+```{r example-table, echo=FALSE}
+tab <- tribble(
+  ~ "Dose", ~ "100mg", ~"300mg", ~ "600mg", ~"900mg", ~"1200mg",
+  "Assigned", "6", "5", "8", "11", "4",
+  "Toxic", "0", "0", "3", "6", "3",
+  "Proportion toxic", "0", "0", "0.375", "0.545", "0.750"
+)
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3), background = "#99cfe0") %>% 
+  row_spec(2, background = "#c1e1ec")
+```
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Karp JE, Lancet JE, Kaufmann SH, et al (2001) "_Clinical and biological activity of the farnesyltransferase inhibitor R115777 in adults with refactory and relapsed acute leukemias: a phase I clinical-laboratory correlative trial_", _Blood_ **97**(11), 3361-3369
+
+
+## Example: Phase I Clinical Trial (2 of 4)
+
+```{r}
+d <- c(100, 300, 600, 900, 1200) # doses
+n <- c(6, 5, 8, 11, 4)           # assigned subjects
+x <- c(0, 0, 3, 6, 3)            # number of toxicities  
+w <- x/n                         # proportion of toxicities 
+
+# fit model
+fit <- fit_logistic(d, n, x)
+alpha_hat <- fit$alpha_hat
+beta_hat <- fit$beta_hat
+
+# Fisher Information Matrix
+FIM <- fit$FIM
+
+# Variance-Covariance Matrix
+Cov <- fit$Cov
+```
+<div class="column-left">
+```{r, fig.width=6}
+dd <- seq(100, 1200, by = 50)
+# fitted curve
+fit_df <- tibble::tibble(
+  x = dd, 
+  y = 1/(1+exp(-(alpha_hat+beta_hat*dd)))
+)
+
+# observations
+obs_df <- tibble::tibble(
+  x = d,
+  y = w
+)
+
+ggplot()+
+  geom_point(data = obs_df, aes(x, y, color = "Observed proportion of toxicities"), size = 2.25)+
+  geom_line(data = fit_df, aes(x, y, color = "Fitted logistic model"), size = 0.75)+
+  xlab("Dose")+
+  ylab("Probability of toxicity")+
+  scale_x_continuous(breaks = c(200, 400, 600, 800, 1000, 1200))+
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1))+
+  scale_color_manual(
+    values = c(
+      "Observed proportion of toxicities"="black",
+      "Fitted logistic model"="black"
+    )
+  )+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.background = element_rect(fill = NA),
+    legend.position = c(0.4, 0.9), #"bottom",
+    legend.key=element_blank()
+  )+
+  guides(
+    color = guide_legend(override.aes = list(
+      color = c("black", "black"),
+      linetype = c("solid", "blank"), 
+      shape=c(NA, 16)
+    ))
+  )
+
+```
+</div>
+
+<div class="column-right">
+- Logistic model was fitted to these data
+- The following estimates were obtained
+```{r}
+tab <- tribble(
+  ~ " ", ~ "Estimate", ~"95% CI",
+  "$\\alpha$", round(alpha_hat, 4), paste0("(", round(alpha_hat - 1.96*sqrt(Cov[1,1]), 4), ", ", round(alpha_hat+ 1.96*sqrt(Cov[1,1]), 4), ")"),
+  "$\\beta$", round(beta_hat, 6), paste0("(", round(beta_hat - 1.96*sqrt(Cov[2,2]),6), ", ", round(beta_hat+ 1.96*sqrt(Cov[2,2]), 6), ")")
+)
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") %>% 
+  row_spec(2, background = "#c1e1ec")
+
+```
+
+- $\mathbf{Var}\left(\widehat{\alpha}, \widehat{\beta}\right) = \begin{pmatrix}`r round(Cov[1,1], 4)`  & `r round(Cov[1,2], 5)` \\ `r round(Cov[2,1], 5)` & `r round(Cov[2,2], 7)`\end{pmatrix}$ 
+</div>
+
+
+## Example: Phase I Clinical Trial (2 of 4)
+
+<div class="column-left">
+```{r, fig.width=6}
+dd <- seq(100, 1200, by = 50)
+# fitted curve
+fit_df <- tibble::tibble(
+  x = dd, 
+  y = 1/(1+exp(-(alpha_hat+beta_hat*dd)))
+)
+
+# observations
+obs_df <- tibble::tibble(
+  x = d,
+  y = w
+)
+
+# 95% CI's of logistic curve
+ci95_df <- map(d, ~ {
+  dose <- .
+  ci_pr <- fit$ci_pr(dose)
+  tribble(
+    ~"d", ~"Estimated P(d)", ~"Lower(95% CI)", ~"Upper(95% CI)",
+    dose, fit$pr_hat(dose), ci_pr[1], ci_pr[2]
+  )
+}) %>% 
+  bind_rows() %>% 
+  gather(bound, value, -d, -`Estimated P(d)`)
+
+ggplot()+
+  geom_point(data = obs_df, aes(x, y, color = "Observed proportion of toxicities"), size = 2.25)+
+  geom_line(data = fit_df, aes(x, y, color = "Fitted logistic model"), size = 0.75)+
+  geom_line(data = ci95_df, aes(x = d, y = value, group = d, color = "95% CI for probability of toxicities"))+
+  xlab("Dose")+
+  ylab("Probability of toxicity")+
+  scale_x_continuous(breaks = c(200, 400, 600, 800, 1000, 1200))+
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1))+
+  scale_color_manual(
+    values = c(
+      "Observed proportion of toxicities" = "black",
+      "Fitted logistic model" = "black",
+      "95% CI for probability of toxicities" = "blue"
+    )
+  )+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.background = element_rect(fill = NA),
+    legend.position = c(0.4, 0.9), #"bottom",
+    legend.key=element_blank()
+  )+
+  guides(
+    color = guide_legend(override.aes = list(
+      color = c("blue", "black", "black"),
+      linetype = c("solid", "solid", "blank"), 
+      shape=c(NA, NA, 16)
+    ))
+  )
+
+```
+</div>
+
+<div class="column-right">
+- 95\% CI's for $P(d)$ at tested doses have been added to the plot
+
+```{r}
+tab <- ci95_df %>% 
+  spread(bound, value) %>% 
+  mutate(`95% CI` = paste0("(", round(`Lower(95% CI)`, 5),", ", round(`Upper(95% CI)`, 5), ")")) %>% 
+  select(-`Upper(95% CI)`, -`Lower(95% CI)`)
+
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1,3,5), background = "#99cfe0") %>% 
+  row_spec(c(2,4), background = "#c1e1ec")
+
+```
+</div>
+
+## Example: Phase I Clinical Trial (3 of 4)
+
+<div class="column-left">
+```{r, fig.width=6}
+ci_D20 <- tibble::tibble(
+  x = round(fit$ci_D100G(0.2)$ci),
+  y = rep(fit$pr_hat(fit$ci_D100G(0.2)$D100G_hat), 2)
+)
+ci_D50 <- tibble::tibble(
+  x = round(fit$ci_D100G(0.5)$ci),
+  y = rep(fit$pr_hat(fit$ci_D100G(0.5)$D100G_hat), 2)
+)
+
+ggplot()+
+  geom_point(data = obs_df, aes(x, y, color = "Observed proportion of toxicities"), size = 2.25)+
+  geom_line(data = fit_df, aes(x, y, color = "Fitted logistic model"), size = 0.75)+
+  geom_line(data = ci95_df, aes(x = d, y = value, group = d, color = "95% CI for probability of toxicities"))+
+  geom_line(data = tibble::tibble(x = c(min(dd), max(dd)), y = rep(0.2, 2)), aes(x,y), linetype="dashed", color = "red")+
+  geom_line(data = ci_D20, aes(x, y, color = "95% CI for D20"), size = 0.75)+
+  geom_point(data=tibble::tibble(x=fit$ci_D100G(0.2)$D100G_hat,y=0.2), aes(x,y), color = "red", size = 3, shape = 15)+
+  geom_line(data = tibble::tibble(x = c(min(dd), max(dd)), y = rep(0.5, 2)), aes(x,y), linetype="dashed", color = "darkorange")+
+  geom_line(data = ci_D50, aes(x, y, color = "95% CI for D50"), size = 0.75)+
+  geom_point(data=tibble::tibble(x=fit$D50_hat,y=0.5), aes(x,y), color = "darkorange", size = 3, shape = 15)+
+  xlab("Dose")+
+  ylab("Probability of toxicity")+
+  scale_x_continuous(breaks = c(200, 400, 600, 800, 1000, 1200))+
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1))+
+  scale_color_manual(
+    values = c(
+      "Observed proportion of toxicities" = "black",
+      "Fitted logistic model" = "black",
+      "95% CI for probability of toxicities" = "blue",
+      "95% CI for D20" = "red",
+      "95% CI for D50" = "darkorange"
+    )
+  )+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.background = element_rect(fill = NA),
+    legend.position = c(0.4, 0.9), #"bottom",
+    legend.key=element_blank()
+  )+
+  guides(
+    color = guide_legend(override.aes = list(
+      color = c("red", "darkorange", "blue", "black", "black"),
+      linetype = c("solid", "solid", "solid", "solid", "blank"), 
+      shape = c(NA, NA, NA, NA, 16)
+    ))
+  )
+
+```
+</div>
+
+<div class="column-right">
+- 95\% CI's for $D_{50}$ and $D_{20}$ have been added to the plot
+
+```{r}
+tab <- bind_rows(
+  tribble(
+    ~" ", ~ "Estimate", ~"95% CI",
+    "$D_{50}$", round(fit$D50_hat), paste0("(", round(fit$ci_D50()[1]), "," ,round(fit$ci_D50()[2]), ")"),
+    "$D_{20}$", round(fit$ci_D100G(0.2)$D100G_hat), paste0("(", round(fit$ci_D100G(0.2)$ci[1]), "," ,round(fit$ci_D100G(0.2)$ci[2]), ")")
+  )
+) 
+
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") %>% 
+  row_spec(c(2), background = "#c1e1ec")
+
+```
+</div>
+
+
+## Example: Phase I Clinical Trial (4 of 4)
+
+- In this example, 2-parameter logistic model was used to estimate:
+
+    + The parameters of dose-response curve $(\alpha, \beta)$
+    + The toxicity probabilities at the study doses (100, 300, 600, 900, 1200) (mg)
+    + Two quantiles of the dose-response curve: $D_{20}$ and $D_{50}$
+    
+- _**Important notes**_:
+
+    + The data is relatively small (34 observations) $\Rightarrow$ variability is high, which is reflected in the estimates of $D_{20}$: _**539 (282, 797)**_ and $D_{50}$: _**850 (653, 1046)**_. There is an overlap in the 95\% CI's.
+    + Only asymptotic CI's based on MLE were considered. Other approaches exist (e.g. Fieller's approach, likelihood ratio test, bootstrap, etc.)$^*$
+    + 2-parameter logistic model was considered for illustration purpose. Other models may provide beter fit to these data.
+    
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Huang Y (2001) "_Various methods of interval estimation of the median effective dose._", _Communications in Statistics -- Simulation and Computation_ **30**(1), 99-112
+    
+
+## 2. Optimal Designs for a 2-parameter Logistic Model
+
+$$
+  P(d) = \frac{1}{1+\exp\left(-(\alpha+\beta d)\right)}
+$$
+
+- $(\alpha, \beta)$ -- unknown parameters, $\beta > 0$ (slope)
+- $d_1, d_2, \ldots, d_K$ -- distinct dose levels: $d_i\in \mathbb{R}$ (if necessary after log-transform)
+- $n_i$ onbservations are made at dose $d_i$: $n = \sum_{k=1}^{K}{n_i}$ -- total sample size
+- $\rho_i = \frac{n_i}{n}$ -- allocation proportion for $d_i$; $\rho_i\in [0, 1]$ and $\sum_{k=1}^K{\rho_i} = 1$
+- We are interested in designs $\boldsymbol{\xi}=\left\{(d_i, \rho_i), i = 1, 2, \ldots, K\right\}$ that are optimal for selected study objectives
+
+    + $\boldsymbol{\xi}$ should lead to most accurate estimation of some parameters of interest
+    + Asymptotically, $\mathbf{Var}\left(\widehat{\alpha}, \widehat{\beta}\right) \propto \boldsymbol{M}^{-1}(\alpha, \beta) \Rightarrow$ by minimizing functions of $\boldsymbol{M}^{-1}(\alpha, \beta)$ (by the choice of $\boldsymbol{\xi}$), we minimize variance of certain parameter estimates
+    
+    
+## Optimal Design Problem
+
+- Design: $\boldsymbol{\xi}=\left\{(d_i, \rho_i), i = 1, 2, \ldots, K\right\}$
+- FIM: $\boldsymbol{M}(\boldsymbol{\xi}, \boldsymbol{\theta}) = n\sum_{k=1}^K\rho_k\boldsymbol{M}_{d_k}(\boldsymbol{\theta})$ -- weighted sum of information about $\boldsymbol{\theta}=(\alpha, \beta)$ from doses $d_1, d_2, \ldots, d_K$
+
+    + For the logistic model, we have:
+    $$
+      \boldsymbol{M}_{d_k}(\boldsymbol{\theta}) = \left(
+      \begin{array}{cc}
+        \psi(\boldsymbol{\theta}) & 
+        \psi(\boldsymbol{\theta})d_k \\
+        \psi(\boldsymbol{\theta})d_k & 
+        \psi(\boldsymbol{\theta})d^2_k
+      \end{array}
+      \right), \qquad \psi(\boldsymbol{\theta}) = \frac{e^{-(\alpha+\beta d_k)}}{\left(1+e^{-(\alpha+\beta d_k)}\right)^2}
+  $$
+
+- Optimal design problem:
+$$
+\begin{array}{c}
+  \text{minimize }\Phi\left(\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\right)\text{ w.r.t. }\boldsymbol{\xi} \\
+  \text{(where }\Phi(\cdot)\text{ is some convex function)}
+\end{array}
+$$
+
+    + $\Phi(\cdot) = \text{det}(\cdot)\Rightarrow$ _**D-optimality**_$\Rightarrow$ min(volume of the confidence ellipsoid for $\boldsymbol{\theta}$)
+    + $\Phi(\cdot) = \text{trace}(\cdot)\Rightarrow$ _**A-optimality**_$\Rightarrow$ min(sum of the lengths of the major axes in the confidence ellipsoid for $\boldsymbol{\theta}$)
+    + $\Phi(\cdot) = \max\text{eigenvalue}(\cdot)\Rightarrow$ _**E-optimality**_$\Rightarrow$ min(length of the largest axis in the confidence ellipsoid for $\boldsymbol{\theta}$)
+    
+
+## General Equivalence Theorem (GET)
+
+- In practice, GET (_**Kiefer and Wolfowitz, 1960**_$^*$) can be used to establish design optimality
+- We formulate GET for D-optmality:
+
+    _The following 3 conditions are equivalent_:
+
+1. $\boldsymbol{\xi}^*$ minimizes $-\log\text{det}\left\{\boldsymbol{M}(\boldsymbol{\xi}, \boldsymbol{\theta})\right\}$
+2. $\boldsymbol{\xi}^*$ minimizes $\max\limits_d\text{trace}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\boldsymbol{M}_d(\boldsymbol{\theta})\right\}-2$
+3. For all $d\in\mathbb{R}$, the derivative $\phi(d, \boldsymbol{\xi}^*, \boldsymbol{\theta})=\text{trace}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\boldsymbol{M}_d(\boldsymbol{\theta})\right\}-2 \leq 0$, with equality holding at each point of $\boldsymbol{\xi}^*$
+
+- Therefore, to verify that a design $\boldsymbol{\xi}^*$ is D-optimal, we can plot $\phi(d, \boldsymbol{\xi}^*, \boldsymbol{\theta})$ -- it should be $\leq 0$, and touch 0 at the points of $\boldsymbol{\xi}^*$
+
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Kiefer J, Wolfowitz J (1960) "_The equivalence of two extremum problems._", _Canadian Journal of Mathematics_ **12**, 363-366
+  
+
+## Example: Data from Phase I trial
+
+```{r}
+xi <- doptimal_logistic(alpha_hat, beta_hat)
+```
+
+<div class="column-left">
+
+- We found MLEs of $\alpha$ and $\beta$: 
+    $\widehat{\alpha} = `r round(alpha_hat, 4)`$;
+    
+    $\widehat{\beta} = `r round(beta_hat, 6)`$
+    
+- Suppose we want to design a new trial, using D-optimality as a criterion
+
+    + Assuming true values $\alpha = `r round(alpha_hat, 4)`$ and $\beta = `r round(beta_hat, 6)`$, the D-optimal design is $$\boldsymbol{\xi}^* = \left\{\left(`r round(min(xi$d))` , `r round(xi$rho[xi$d == min(xi$d)], 1)`\right), \left(`r round(max(xi$d))`, `r round(xi$rho[xi$d == max(xi$d)], 1)`\right)\right\}$$
+    + The plot of $\phi(d, \boldsymbol{\xi}^*, \boldsymbol{\theta})$ confirms that $\boldsymbol{\xi}^*$ is indeed D-optimal
+
+</div>
+
+<div class="column-right-w">
+```{r, fig.width=6}
+phi_df <- tibble::tibble(
+  x = seq(100, 1500, by = 25),
+  y = phi(x, xi, c(alpha_hat, beta_hat))
+)
+
+xi_dopt_df <- tibble::tibble(
+  x = rep(round(xi$d), 2),
+  y = c(phi(round(xi$d), xi, c(alpha_hat, beta_hat)), rep(min(phi_df$y), 2)),
+  grp = c(1, 2, 1, 2)
+)
+
+zero_df <- tibble::tibble(
+  x = c(100, 1500),
+  y = rep(0, 2)
+)
+
+ggplot()+
+  geom_line(data = phi_df, aes(x, y), size = 0.75)+
+  geom_line(data = xi_dopt_df, aes(x, y, group = grp), linetype = "dashed")+
+  geom_line(data = zero_df, aes(x,y), linetype = "dashed")+
+  xlab(expression(d))+
+  ylab(expression(phi(d)))+
+  scale_x_continuous(breaks = round(xi$d))+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18, angle = 0),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14)
+  )
+```
+  
+</div>
+
+
+## Optimal Designs 
+
+We will review several optimal designs for the 2-parameter logistic model. The main reference is _**Mathew and Sinha (2001)**_$^*$
+
+1. Optimal designs for estimating the entire dose-response relationship through most precise estimation of $(\alpha, \beta)$
+2. Optimal designs for the join estimation of $D_{100\Gamma}$ ($\Gamma$-th percentile) and $\beta$ (slope)
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Mathew T, Sinha BK (2001) "_Optimal designs for binary data under logistic regression._", _Journal of Statistical Planning and Inference_ **93**, 295-307
+ 
+
+## Estimating $(\alpha, \beta)$ (1 of 2)
+
+<div class="column-left">
+- _**The D-optimal design**_ minimizing $\text{det}\left\{\boldsymbol{M}^{-1}(\alpha, \beta)\right\}$ is a 2-point design, symmetric around $D_{50}$, equally supported at the $17{.}6^{\text{th}}$ and $82{.}4^{\text{th}}$ percentiles of the dose-response curve: 
+$$
+  \boldsymbol{\xi}^*_{D-opt}=\left\{\left(D_{17{.}6}, \frac{1}{2}\right), \left(D_{82{.}4}, \frac{1}{2}\right)\right\},
+$$
+where 
+$$
+\begin{array}{c}
+  D_{17{.}6} = \frac{\log\left(\frac{0.176}{0.824}\right)-\alpha}{\beta}\\
+  D_{82{.}4} = \frac{\log\left(\frac{0.824}{0.176}\right)-\alpha}{\beta}
+\end{array}
+$$
+</div>
+
+<div class="column-right-w">
+  D-optimal design for estimating $(\alpha, \beta)$ when $\widehat{\alpha}=`r round(alpha_hat, 4)`$ and $\widehat{\beta}=`r round(beta_hat, 6)`$
+  
+```{r logistic-d-optimal, fig.width=6}
+model <- tibble::tibble(
+    x = seq(100, 1500, by = 25), 
+    y = 1/(1+exp(-(alpha_hat+beta_hat*x)))
+  )
+
+design <- tibble::tibble(
+  x = xi$d, 
+  w = xi$rho
+)                    
+
+ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    xlab("Dose")+
+    ylab("Probability of toxicity")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 20, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(xi$d)))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "D-optimal allocation proportion", breaks = round(xi$rho, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 14)
+    )
+```
+
+_**Using data from Phase I trial (Karp et al. 2001)**_  
+</div>
+
+
+## Estimating $(\alpha, \beta)$ (2 of 2)
+
+- _**The A-optimal design**_ minimizes $\mathbf{Var}\left(\widehat{\alpha}\right)+\mathbf{Var}\left(\widehat{\beta}\right)$
+
+- Within the class of _**symmetric designs**_, the A-optimal design is given by 
+$$
+  \left\{\left(d^*_1, \frac{1}{2}\right), \left(d^*_2, \frac{1}{2}\right)\right\},\text{ where }d^*_1 = \frac{-c^*-\alpha}{\beta}\text{ and }d^*_2 = \frac{c^*-\alpha}{\beta},
+$$
+
+and $c^* = c(\alpha, \beta)$ is obtained by minimizing the function
+
+$$
+g(c) = \frac{\alpha^2+\beta^2}{c^2e^c/(1+e^c)^2}+\frac{1}{e^c/(1+e^c)^2}
+$$
+
+
+- Within the class of _**two-point designs**_, the A-optimal design is given by 
+
+$$
+  \left\{\left(d^*_1, \rho\right), \left(d^*_2, 1-\rho\right)\right\},\text{ where }d^*_1 = \frac{c_1-\alpha}{\beta}\text{ and }d^*_2 = \frac{c_2-\alpha}{\beta},
+$$
+
+and $(c_1, c_2, \rho)$ are found numerically, by minimizing the function
+$$
+  \frac{\rho C_1(\beta^2+(c_1-\alpha)^2)+(1-\rho)C_2(\beta + (c_2-\alpha)^2)}{(\rho C_1 + (1-\rho)C_2)(\rho c_1^2C_1+(1-\rho)c_2^2C_2) - (\rho c_1C_1 + (1-\rho)c_2C_2)^2},
+$$
+where $C_i = \frac{e^{-c_i}}{(1+e^{-c_i})^2}, \quad i = 1, 2$.
+
+
+## Example: A-optimal designs using data from Phase I trial
+
+```{r a-optimal-designs}
+xi_aopt_sym <- list(d = c(396, 1303), rho = c(0.5, 0.5)) # aoptimal_logistic(alpha_hat, beta_hat, "symmetric")
+xi_aopt_nsym <- list(d = c(313, 1387), rho = c(0.82, 0.18)) # aoptimal_logistic(alpha_hat, beta_hat, "non-symmetric")
+
+```
+
+<div class="column-left">
+_**Symmetric A-optimal design**_:
+$$
+  \boldsymbol{\xi}^{*, (\text{symmetric})}_{A-opt}=\left\{\left(`r round(xi_aopt_sym$d[1])`, `r round(xi_aopt_sym$rho[1], 2)`\right), \left(`r round(xi_aopt_sym$d[2])`, `r round(xi_aopt_sym$rho[1], 2)`\right)\right\},
+$$
+
+  Symmetric A-optimal design for estimating $(\alpha, \beta)$ when $\widehat{\alpha}=`r round(alpha_hat, 4)`$ and $\widehat{\beta}=`r round(beta_hat, 6)`$
+  
+```{r logistic-a-optimal-symmetric, fig.width=6, fig.height=5}
+model <- tibble::tibble(
+    x = seq(100, 1500, by = 25), 
+    y = 1/(1+exp(-(alpha_hat+beta_hat*x)))
+  )
+
+design <- tibble::tibble(
+  x = xi_aopt_sym$d, 
+  w = xi_aopt_sym$rho
+)                    
+
+ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    xlab("Dose")+
+    ylab("Probability of toxicity")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 20, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(xi_aopt_sym$d)))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "A-optimal (equal) allocation proportion", breaks = round(xi_aopt_sym$rho, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+```
+
+</div>
+
+<div class="column-right">
+_**General 2-point A-optimal design**_:
+$$
+  \boldsymbol{\xi}^{*, (\text{general})}_{A-opt}=\left\{\left(`r round(xi_aopt_nsym$d[1])`, `r round(xi_aopt_nsym$rho[1], 2)`\right), \left(`r round(xi_aopt_nsym$d[2])`, `r round(xi_aopt_nsym$rho[2], 2)`\right)\right\},
+$$
+
+  General 2-point A-optimal design for estimating $(\alpha, \beta)$ when $\widehat{\alpha}=`r round(alpha_hat, 4)`$ and $\widehat{\beta}=`r round(beta_hat, 6)`$
+  
+```{r logistic-a-optimal-non-symmetric, fig.width=6, fig.height=5}
+model <- tibble::tibble(
+    x = seq(100, 1500, by = 25), 
+    y = 1/(1+exp(-(alpha_hat+beta_hat*x)))
+  )
+
+design <- tibble::tibble(
+  x = xi_aopt_nsym$d, 
+  w = xi_aopt_nsym$rho
+)                    
+
+ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w[1]), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w[2]), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    xlab("Dose")+
+    ylab("Probability of toxicity")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 20, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(xi_aopt_nsym$d)))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "A-optimal (unequal) allocation proportion", breaks = round(xi_aopt_nsym$rho, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+```
+
+</div>
+
+***
+
+```{r}
+
+theta <- c(alpha_hat, beta_hat)
+trM_aopt_sym <- seq_along(xi_aopt_sym$d) %>% map(~ {
+      d <- xi_aopt_sym$d[.]
+      rho <- xi_aopt_sym$rho[.]
+      psi <- exp(-(theta[1]+theta[2]*d))/(1+exp(-(theta[1]+theta[2]*d)))^2
+      rho*rbind(
+        c(psi, psi*d),
+        c(psi*d, psi*d^2)
+      )
+    }) %>% 
+      reduce(`+`) %>% 
+      solve() %>% 
+      diag() %>% 
+      sum()
+      
+trM_aopt_nsym <- seq_along(xi_aopt_nsym$d) %>% map(~ {
+      d <- xi_aopt_nsym$d[.]
+      rho <- xi_aopt_nsym$rho[.]
+      psi <- exp(-(theta[1]+theta[2]*d))/(1+exp(-(theta[1]+theta[2]*d)))^2
+      rho*rbind(
+        c(psi, psi*d),
+        c(psi*d, psi*d^2)
+      )
+    }) %>% 
+      reduce(`+`) %>% 
+      solve() %>% 
+      diag() %>% 
+      sum()
+      
+tab <- tribble(
+  ~"A-optimal design", ~"$\\text{trace}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\xi}, \\boldsymbol{\\theta})\\}$", ~"Efficiency (x 100%) $\\left(\\frac{\\text{trace}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\xi}^{(general)}, \\boldsymbol{\\theta})\\}}{\\text{trace}\\{\\boldsymbol{M}^{-1}(\\boldsymbol{\\xi}, \\boldsymbol{\\theta})\\}}\\right)^{1/2}$", 
+
+"Symmetric", round(trM_aopt_sym, 2), paste0(round(sqrt(trM_aopt_nsym/trM_aopt_sym)*100), "%"),
+"General 2-point", round(trM_aopt_nsym, 2), paste0(round(sqrt(trM_aopt_nsym/trM_aopt_nsym)*100), "%")
+) 
+
+tab %>% 
+  knitr::kable("html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") %>% 
+  row_spec(c(2), background = "#c1e1ec")
+
+```
+
+
+## Estimating $D_{100\Gamma}$ and slope $\beta$ (1 of 2)
+
+- $\delta = D_{100\Gamma} = \frac{\gamma-\alpha}{\beta}$, where $\gamma = \log\left(\frac{\Gamma}{1-\Gamma}\right)$, $\Gamma\in (0, 1)$ -- predetermined
+- For a parametrized model $(\delta, \beta)$, the FIM is
+
+$$
+\boldsymbol{M}(\delta, \beta) = n\begin{pmatrix}
+  \beta^2\sum_{k=1}^K{\rho_k\psi_k(\delta, \beta)} &
+  -\sum_{k=1}^K{\rho_k(a_k-\gamma)\psi_k(\delta, \beta)} \\
+  -\sum_{k=1}^K{\rho_k(a_k-\gamma)\psi_k(\delta, \beta)} &
+  \frac{1}{\beta^2}\sum_{k=1}^K{\rho_k(a_k-\gamma)^2\psi_k(\delta, \beta)}
+\end{pmatrix},
+$$
+
+where 
+
+$$
+\rho_k = \frac{n_k}{n}, \text{ } \psi_k(\delta, \beta) = \frac{e^{-a_k}}{(1+e^{-a_k})^2}, \text{ and } a_k = \gamma+\beta(d_k-\delta)
+$$
+
+- It can be shown that $\det\left\{\boldsymbol{M}(\delta, \beta)\right\}=\det\left\{\boldsymbol{M}(\alpha, \beta)\right\} \Rightarrow$ the D-optimal design for estimating $(\delta, \beta)$ is the same as one for estimating $(\alpha, \beta)$:
+
+$$
+  \boldsymbol{\xi}^*_{D-opt}=\left\{\left(D_{17{.}6}, \frac{1}{2}\right), \left(D_{82{.}4}, \frac{1}{2}\right)\right\},
+$$
+where 
+$$
+\begin{array}{c}
+  D_{17{.}6} = \frac{\log\left(\frac{0.176}{0.824}\right)-\alpha}{\beta}\\
+  D_{82{.}4} = \frac{\log\left(\frac{0.824}{0.176}\right)-\alpha}{\beta}
+\end{array}
+$$
+
+
+## Estimating $D_{100\Gamma}$ and slope $\beta$ (2 of 2)
+
+- The _**A-optimal design for $(\delta, \beta)$**_ minimizes trace of $\boldsymbol{M}^{-1}(\delta, \beta)$
+
+- If we consider only symmetric 2-point designs, then the A-optimal design is given by 
+$$
+  \left\{\left(d^*_1, \frac{1}{2}\right), \left(d^*_2, \frac{1}{2}\right)\right\},\text{ where }d^*_1 = \frac{-c^*-\alpha}{\beta}\text{ and }d^*_2 = \frac{c^*-\alpha}{\beta},
+$$
+
+and $c^* = c(\alpha, \beta)$ is obtained by minimizing the function
+
+$$
+g(c) =\frac{1}{\beta^2}\left(\frac{\beta^4+\gamma^2}{c^2e^c/(1+e^c)^2}+\frac{1}{e^c/(1+e^c)^2}\right)
+$$
+
+- If we consider a broader class of 2-point designs, the A-optimal design is more complex$^*$
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Mathew T, Sinha BK (2001) "_Optimal designs for binary data under logistic regression._", _Journal of Statistical Planning and Inference_ **93**, 295-307
+
+
+## Example: Symmetric A-optimal designs for estimating $(D_{100\Gamma}, \beta)$ using data from Phase I trial
+
+```{r logistic-curve-and-symmetric-a-optimal-design-for-D100G-and-beta, echo=FALSE}
+shinyApp(
+  ui = fluidPage(
+    sidebarPanel(
+      withMathJax(),
+      textInput("alpha_hat", "$$\\widehat{\\alpha}$$", round(alpha_hat, 4)),
+      textInput("beta_hat", "$$\\widehat{\\beta}$$", round(beta_hat, 6)),
+      sliderInput("G", 
+                  "$$\\Gamma:$$", 
+                  min = 0.05, 
+                  max = 0.5,
+                  step = 0.01,
+                  value = 0.05)
+    ),
+    mainPanel(
+      plotOutput("logistic_plot")
+    )
+  ),
+  
+  server = function(input, output) {
+    output$logistic_plot <- renderPlot({
+      d <- seq(100, 1500, by = 25)
+      
+      alpha <- as.numeric(input$alpha_hat)
+      beta <- as.numeric(input$beta_hat)
+      G <- as.numeric(input$G)
+      
+      prob <- 1/(1+exp(-(alpha+beta*d)))
+      xi_aopt <- aoptimal_logistic_G(alpha, beta, G)
+      if (G==0.5){
+        xi_aopt$d <- -alpha/beta
+        xi_aopt$rho <- 1
+      }
+      model <- tibble::tibble(
+        x = d, 
+        y = prob
+      )
+      design <- tibble::tibble(
+        x = xi_aopt$d, 
+        w = xi_aopt$rho
+        )                    
+
+  ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    geom_line(data = tibble::tibble(x = c(min(d), max(d)), y = rep(design$w[1], 2)), aes(x = x, y = y), color = "red", size = 0.5, linetype = "dashed")+
+    xlab("Dose")+
+    ylab("Probability")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 20, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(min(d), xi_aopt$d, max(d))))+
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.25), sec.axis = sec_axis(~./1, name = "A-optimal allocation proportion", breaks = round(xi_aopt$rho, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 14)
+    )
+    })
+  },
+  
+  options = list(height = 400)
+)
+
+```
+
+- The A-optimal design becomes concentrated at doses closer to $D_{50}$ as $\Gamma$ is getting closer to 0.5; for $\Gamma = 0.5$, the design is a single-point
+
+
+## Limitations of the Described Optimal Designs
+
+1. The designs depend on the true model parameters which are unknown at the trial outset. Possible solutions are:
+
+    + _**Minimax designs**_ -- minimize worst value of the criterion over the range of potential model parameter values
+    + _**Bayesian optimal designs**_ -- minimize average value of the criterion given the prior distribution of the parameters
+    + _**Adaptive optimal designs**_ -- sequentially update the estimates of model parameters and direct future dose assignments to the targeted optimal design
+    
+2. In the context of phase I clinical trials (in cancer patients), there is an _**ethical imperative to minimize exposure of subjects to highly toxic doses**_
+
+    + As we have seen, D-optimal design is concentrated at 2 quantiles ($\approx 18^\text{th}$ and $\approx 82^\text{nd}$) $\Rightarrow$ the higher dose may be unacceptablly toxic ($\approx 82$\% of toxicity)
+    + Ethical constraints should be incorporated; e.g. "_**all doses must be $\leq D_{100\Gamma}$ for some predetermined $\Gamma\in (0, 1)$**_"
+    
+    
+## Constrained Bayesian Optimal Designs
+
+_**References**_
+
+- Rosenberger WF, Haines L, Perevozskaya I. "_Constrained Bayesian optimal designs for phase I clinical trials: continuous dose space_", In: _mODa 6_, A.C. Atkinson, P.Hackl, and W.G.Muller, eds., Physica, Heidelberg, 2001.
+- Haines LM, Perevozskaya I, Rosenberger WF. "_Bayesian optimal designs for phase I clinical trials_", _Biometrics_, **59**, 561–600, 2003.
+- Rosenberger WF, Canfield GC, Perevozskaya I, Haines LM, HausnerP. "_Development of interactive software for Bayesian optimal phase I clinical trial design_", _Drug Information Journal_, **39**, 89–98, 2005.
+
+
+## Constrained Bayesian Optimal Designs (1 of 4)
+
+- 2-parameter logistic model for the probability of toxicity:
+$$
+  P_i = \text{Pr}\left(Y_j = 1|d_i\right) = \frac{1}{1+\exp\left(-\frac{d_i-\alpha}{\beta}\right)},\quad i = 1, 2, \ldots, K;\quad j = 1, 2, \ldots, n_i
+$$
+(Note slightly different parametrization from the one discussed before)
+
+- Quantile of interest (Maximum Tolerated Dose, _**MTD**_):
+$$
+  \mu_{\Gamma} = \alpha + \beta\log\left(\frac{\Gamma}{1-\Gamma}\right),\text{ for user-defined }\Gamma\in (0, 1)
+$$
+
+- Maximum dose that cannot be exceeded:
+$$
+  \mu_{R} = \alpha + \beta\log\left(\frac{\Gamma_R}{1-\Gamma_R}\right),\text{ for user-defined }\Gamma_R\in (0, 1)
+$$
+(restriction on the dose space: $\Omega_R=\left\{d: d\leq \mu_R\right\}$)
+
+- $\pi(\boldsymbol{\theta})$: prior distribution on $\boldsymbol{\theta} = (\alpha, \beta)\rightarrow \int\limits_{\boldsymbol{\Theta}}{\pi(\boldsymbol{\theta})d\boldsymbol{\theta}} = 1$
+
+    + Captures uncertainty about $(\alpha, \beta)$
+
+
+## Constrained Bayesian Optimal Designs (2 of 4)
+
+- Constrained Bayesian D-optimal design problem:
+$$
+\begin{array}{c}
+  \mathbf{E}\left(\log\text{det}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\right\}\right) = -\int\limits_{\boldsymbol{\Theta}}{\log\text{det}\left\{\boldsymbol{M}(\boldsymbol{\xi}, \boldsymbol{\theta})\right\}\pi(\boldsymbol{\theta})d\boldsymbol{\theta}} \rightarrow \min\text{ w.r.t. }\boldsymbol{\xi} \\
+  \text{subject to an “overdose” constraint:} \\
+  \eta_R(\boldsymbol{\xi}) = \sum_{k=1}^K\rho_k\text{Pr}\left(\mu_R\leq d_k\right) \leq \varepsilon
+\end{array}
+$$
+
+- $\varepsilon\geq 0$ is small, pre-defined constant that can be chosen according to the level of the investigator's concern in assigning high doses
+
+    + $\varepsilon = 0\Rightarrow$ "naive design" _**with the upper bound $\min(\mu_R)$**_ over the prior distribution (if such a minimum exists)
+    
+
+## Constrained Bayesian Optimal Designs (3 of 4)
+
+General Equivalence Theorem (GET):
+
+_**Under certain regularity conditions, the following three assertions are equivalent**_$^*$:
+
+1. $\boldsymbol{\xi}^*$ minimizes $-\mathbf{E}_{\boldsymbol{\theta}}\left(\log\text{det}\left\{\boldsymbol{M}(\boldsymbol{\xi}, \boldsymbol{\theta})\right\}\right)$ subject to constraint $\eta_R(\boldsymbol{\xi})\leq\varepsilon$
+2. There exists a Lagrangian multiplier $u^*\geq 0$ for which design $\boldsymbol{\xi}^*$ minimizes $\max\limits_d\phi(d, \boldsymbol{\xi}, \boldsymbol{\theta})$, where $\phi(d, \boldsymbol{\xi}, \boldsymbol{\theta}) = \mathbf{E}_{\boldsymbol{\theta}}\left(\text{trace}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\boldsymbol{M}_d(\boldsymbol{\theta})\right\}\right)-2-u^*\left(\text{Pr}\left(\mu_R\leq d\right)-\eta_R(\boldsymbol{\xi})\right)$, and in addition $\eta_d(\boldsymbol{\xi}^*)=\varepsilon$
+3. The support of $\boldsymbol{\xi}^*$ is contained in the set of $d$ values for which $\phi(d, \boldsymbol{\xi}, \boldsymbol{\theta})=0$ almost everywhere in the $\boldsymbol{\xi}^*$ measure
+
+- The optimality of $\boldsymbol{\xi}^*$ can be verified by plotting the derivative function $\phi(d, \boldsymbol{\xi}^*, \boldsymbol{\theta})$
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Haines LM, Perevozskaya I, Rosenberger WF (2003) "_Bayesian optimal designs for phase I clinical trials._", _Biometrics_ **59**, 561-600
+
+
+## Constrained Bayesian Optimal Designs (4 of 4)
+
+- There is no closed-form solution of this problem, i.e. numerical optimization is performed
+- The designs are dependent on parameters' prior distribution
+- In contrast to D-/A-optimal designs, the design may contain more than 2 support points.
+
+ 
+## 3. Adaptive Optimal Designs
+
+- The designs we have discussed thus far assume some prior clinical data available $(\widehat{\alpha}, \widehat{\beta}, \text{ etc.})$
+- Suppose we want to design a study without having any prior experience ("first-in-human" study)
+- We have a pre-specified set of doses $\Omega=\left\{d_1, d_2, \ldots, d_K\right\}$, and the experimental goals (in the order of importance) are:
+
+    + To cluster dose assignments at the maximum tolerated dose (MTD), defined as $D_{100\Gamma}=\Gamma\text{-th}$ percentile of the dose-toxicity curve
+    + To estimate $D_{100\Gamma}$ as precisely as possible
+    + To estimate dose-toxicity relationship within the range of $\Omega$
+    
+    
+## Adaptive Design Strategy
+
+- _**Start-up design**_: Initial dose assignments are made sequentially, escalating from the lowest dose
+- _**Follow-on design**_:
+
+    + Use interim data to obtain preliminary estimates of the dose–toxicity relationship
+    + Calibrate the design to direct future assignments to "optimal" dose levels (that are safe and carry most information for the study objectives)
+    
+- _**Data analysis**_: Estimate the model, the MTD, and possibly other parameters of interest
+
+
+## Strategic questions
+
+**Q1**: _How to implement the start-up phase_?
+
++ Algorithm for dose escalation to ensure subjects are not exposed to suboptimal (too high or too low) doses
++ Sample size for the start-up phase
+    
+**Q2**: _How to implement the follow-on phase_?
+
++ Choice of prior distribution for a Bayesian optimal design
++ Algorithm for dose assignments based on constrained Bayesian optimality
++ Sample size for the follow-on phase
+    
+**Q3**: _How to analyze final data_?
+
++ Choice of estimation method (MLE, Bayesian, other?)
++ Choice of model (same model as was used in the design phase or maybe more sophisticated?)
+    
+
+## Start-up Design: Random Walk Rule (RWR) (_**Durham et al. 1997**$^*$_)
+
+- $\Omega=\left\{d_1 < d_2 < \ldots < d_K\right\}\rightarrow$ doses; $\Gamma\in (0, 0.5]\rightarrow$ pre-specified toxicity level; $b = \Gamma/(1-\Gamma)\rightarrow$ bias coin probability
+- For the $j-$th patient, $Y_j\rightarrow$ toxicity indicator; $X_j\in\Omega\rightarrow$ dose assignment
+- Suppose the $j-$th patient has been assigned to dose $d_k$ for some $k = 1, 2, \ldots, K$. The $(j+1)-$st patient's dose assignment is determined as follows:
+
+    + Suppose $X_j = d_k$ for some $k = 2, \ldots, K-1$ (intermediate dose)
+      
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{k-1}$ (de-escalate)
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{k+1}$ (escalate) with probability $b$ or $X_{j+1} = d_k$ (stay) with probability $(1-b)$
+        
+    + Suppose $X_j = d_1$ (lowest dose)
+    
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{1}$ (stay)
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{2}$ (escalate) with probability $b$ or $X_{j+1} = d_1$ (stay) with probability $(1-b)$
+        
+    + Suppose $X_j = d_K$ (highest dose)
+
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{K-1}$ (de-escalate)
+        + If $Y_j = 1\Rightarrow X_{j+1} = d_{K}$ (stay)
+
+<br />
+<br />
+<br />
+<br />
+
+<sup>*</sup>Durham SD, Flournoy N, Rosenberger WF (1997) "_A random walk rule for phase I clinical trials._", _Biometrics_ **53**, 745-760
+
+
+## RWR –Important Statistical Properties
+
+- RWR is completely nonparametric (requires no assumption for $P(d)$ other than monotonicity)
+- The asymptotic (stationary) distribution of allocation proportions at different dose levels is unimodal around the target ($\Gamma-$th) percentile of $P(d)$
+- Empirical mode is an unbiased estimator of the target percentile, with small variance
+
+
+## Follow-on Design
+
+1. Based on data from $n_0$ patients from the start-up phase $\left\{(d_i, Y_i), i = 1, 2, \ldots, n_0\right\}$, estimate the dose-response curve: $(\widehat{\alpha}, \widehat{\beta})$; $\widehat{\mathbf{Var}}\left(\widehat{\alpha}, \widehat{\beta}\right)$
+2. Calibrate the design using restricted Bayesian optimality:
+
+    + Establish prior distribution for $(\alpha, \beta)$ based on the start-up data; e.g. 
+    $$
+      g(\alpha, \beta)\sim Normal\left((\widehat{\alpha}, \widehat{\beta}), \widehat{\mathbf{Var}}\left(\widehat{\alpha}, \widehat{\beta}\right)\right)
+    $$
+    + Derive Bayesian optimal design:
+    $$ \begin{array}{c}
+      \mathbf{E}\left(\log\text{det}\left\{\boldsymbol{M}^{-1}(\boldsymbol{\xi}, \boldsymbol{\theta})\right\}\right)\rightarrow\min \text{ (w.r.t) }\boldsymbol{\xi} \\
+      \text{subject to constraint }\eta_R(\boldsymbol{\xi})\leq\varepsilon
+      \end{array}
+    $$
+
+3. Allocate additional $n_1$ patients to optimal doses according to the design derived at Step 2
+
+    + Choice of randomization method is important –e.g. permuted block randomization
+    
+
+## Data Analysis
+
+- Final data analysis is based on pooled data from $n = n_0+n_1$ patients ($n_0$ from the start-up sample and $n_1$ from the follow-on sample)
+
+    + MLE of the dose-response: $(\widehat{\alpha}, \widehat{\beta})$; $\widehat{\mathbf{Var}}\left(\widehat{\alpha}, \widehat{\beta}\right)$
+    + Estimated toxicity probabilities at the study doses
+    + Estimated MTD$\rightarrow D_{100\Gamma}=\Gamma$-th percentile of the dose-toxicity curve
+    
+- Other methods of estimation can be used:
+
+    + Nonparametric –e.g. isotonic regression
+    + Semiparametric –e.g. kernel smoothing regression
+    + Bayesian estimation
+    + _**Interval analysis estimation**_
+    
+
+## Example (1 of 5)
+
+<div class="column-left">
+- Consider a dose-escalation trial with 9 dose levels (mg):
+```{r}
+tribble(
+ ~" ", ~ "1", ~"2", ~"3", ~"4", ~"5", ~"6", ~"7", ~"8", ~"9", 
+ "Dose (mg)", 60, 120, 200, 300, 420, 630, 945, 1400, 1700
+) %>% knitr::kable("html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") #%>% 
+  #row_spec(2, background = "#c1e1ec")
+```
+
+- Suppose a start-up phase with $n_0 = 15$ patients was implemented using RWR, and the data were as follows:
+</div>
+
+<div class="column-right">
+```{r RWR, fig.width = 6, fig.height=4}
+# example of using RWR and visualization
+d1 <- c(60, 120, 200, 300, 420, 630, 945, 1400, 1700)
+logd <- log(d1)
+alpha <- -11.78
+beta <- 1.87
+#rwr_df <- rwr_design(logd, 15, 0.2, alpha, beta)
+rwr_df <- tibble::tibble(
+  X = log(c(60, 120, 200, 300, 420, 630, 945, 630, 420, 630, 945, 1400, 945, 630, 420)),
+  Y = c(0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0)
+)
+rwr_df<- rwr_df %>% 
+  mutate(
+    X = map_dbl(X, ~ d1[. == logd]),
+    toxicity = if_else(Y == 1, "toxicity", "non-toxicity"),
+    zero = 0, 
+    subject = seq_along(X)
+  ) %>% 
+  gather(key, dose, -toxicity, -Y, -subject)
+
+  ggplot()+
+    geom_line(data = rwr_df, aes(x = subject, y = dose, group = subject), size = 0.5, linetype = "dashed")+
+    geom_point(data = filter(rwr_df, !dose==0), aes(x = subject, y = dose, shape = toxicity), size = 4)+
+    scale_shape_manual(values = c("toxicity" = 15, "non-toxicity"=0))+
+    scale_x_continuous(breaks = rwr_df$subject)+
+    scale_y_continuous(breaks = c(60, 120, 200, 300, 420, 630, 945, 1400, 1700))+
+    theme(
+      axis.title = element_text(family="Helvetica", face = "bold", size = 18),
+      axis.text = element_text(family="Helvetica", face = "bold", size = 14)
+    )
+
+```
+
+</div>
+
+## Example (2 of 5)
+
+- Summary of observed data:
+
+```{r}
+obs_df <- rwr_df %>% 
+  filter(key == "X") %>% 
+  select(Y, dose) %>% 
+  arrange(dose) %>% 
+  group_by(dose) %>% 
+  mutate(
+    N = n(),
+    N = ifelse(is.na(Y), 0, N)
+  ) %>% 
+  group_by(N, dose) %>% 
+  summarize(`#Toxic` = sum(Y)) %>% 
+  ungroup() 
+  
+obs_df <- tibble::tibble(
+  N = c(1, 1, 1, 1, 1, 3, 3, 4),
+  dose = c(60, 120, 200, 300, 1400, 420, 945, 630),
+  `#Toxic` = c(0, 0, 0, 0, 1, 0, 2, 2)
+)
+
+obs_df %>% 
+  bind_rows(
+    tibble::tibble(
+      dose = d1[c(60, 120, 200, 300, 420, 630, 945, 1400, 1700) %>% map_lgl(~ !. %in% obs_df$dose)],
+      N = 0, 
+      `#Toxic` = NA
+    )  
+  ) %>% 
+  gather(`Dose (mg)`, value, -dose) %>% 
+  spread(dose, value) %>% 
+  knitr::kable("html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") %>% 
+  row_spec(c(2), background = "#c1e1ec")
+```
+
+- Based on these data, logistic regression model 
+$$
+  P_i(d_i)=\frac{1}{1+e^{-\left(\alpha+\beta\log{d_i}\right)}}
+$$
+
+was fitted as the MLE's were
+```{r}
+fit <- fit_logistic(log(obs_df$dose), obs_df$N, obs_df$`#Toxic`)
+```
+
+  + $\widehat{\alpha}=`r fit$alpha_hat`$
+  + $\widehat{\beta}=`r fit$beta_hat`$
+  + $\widehat{\mathbf{Var}}\left(\widehat{\alpha}, \widehat{\beta}\right)=
+    \begin{pmatrix}
+      `r fit$Cov[1, 1]` & `r fit$Cov[1, 2]` \\
+      `r fit$Cov[2, 1]` & `r fit$Cov[2, 2]`
+    \end{pmatrix}$
+    
+    
+## Example (3 of 5)
+
+```{r logistic-2nd-stage-d-optimal}
+
+model <- tibble::tibble(
+    x = seq(min(d1), max(d1), length = 50), 
+    y = 1/(1+exp(-(fit$alpha_hat+fit$beta_hat*log(x))))
+  )
+
+xi_dopt <- doptimal_logistic(fit$alpha_hat, fit$beta_hat)
+xi_dopt$d <- exp(xi_dopt$d)
+
+design <- tibble::tibble(
+  x = xi_dopt$d, 
+  w = xi_dopt$rho
+)                    
+
+ggplot()+
+    geom_line(data = model, aes(x = x, y = y), size=1.5)+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w[1]), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    geom_line(data = tibble::tibble(x = range(model$x), y = design$w[2]), aes(x, y), color = "red", size = 0.5, linetype = "dashed")+
+    xlab("Dose")+
+    ylab("Probability of toxicity")+
+    geom_col(data=design, aes(x = x, y = w*1), width = 20, fill = "red", alpha = 0.5)+
+    scale_x_continuous(breaks = round(c(xi_dopt$d)))+
+    scale_y_continuous(sec.axis = sec_axis(~./1, name = "D-optimal allocation proportion", breaks = round(xi_dopt$rho, 2)))+
+    theme(
+      axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      axis.text.x  = element_text(family = "Helvetica", face = "bold", size = 14),
+      axis.text.y  = element_text(family = "Helvetica", face = "bold", size = 14),
+      title = element_text(family = "Helvetica", face = "bold", size = 14),
+      strip.text.x = element_text(family = "Helvetica", face = "bold", size = 18),
+      strip.text.y = element_text(family = "Helvetica", face = "bold", size = 18),
+      legend.position = "right",
+      legend.title = element_blank(),
+      legend.text  = element_text(family = "Helvetica", face = "bold", size = 10)
+    )
+```
+
+Here, we present an _**estimated D-optimal design**_, based on data from a pilot sample of 15 patients.
+
+## Example (4 of 5)
+
+Directional derivative plot for D-optimal design
+
+```{r, fig.width=6}
+xi_dopt$d <- log(xi_dopt$d)
+phi_df <- tibble::tibble(
+  x = seq(min(d1), max(d1), length = 50),
+  y = phi(log(x), xi_dopt, c(fit$alpha_hat, fit$beta_hat))
+)
+
+#xi_dopt$d <- exp(xi_dopt$d)
+xi_dopt_df <- tibble::tibble(
+  x = rep(round(exp(xi_dopt$d)), 2),
+  y = c(phi(xi_dopt$d, xi_dopt, c(fit$alpha_hat, fit$beta_hat)), rep(min(phi_df$y), 2)),
+  grp = c(1, 2, 1, 2)
+)
+
+zero_df <- tibble::tibble(
+  x = c(min(d1), max(d1)),
+  y = rep(0, 2)
+)
+
+ggplot()+
+  geom_line(data = phi_df, aes(x, y), size = 0.75)+
+  geom_line(data = xi_dopt_df, aes(x, y, group = grp), linetype = "dashed")+
+  geom_line(data = zero_df, aes(x,y), linetype = "dashed")+
+  xlab(expression(d))+
+  ylab(expression(phi(d)))+
+  scale_x_continuous(breaks = round(exp(xi_dopt$d)))+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18, angle = 0),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14)
+  )
+```
+
+This is the directional derivative of an _**estimated D-optimal design**_, based on data from a pilot sample of 15 patients
+
+
+## Example (5 of 5)
+
+- Adaptation: next $n_1 = 30$ patients are randomized according to D-optimal design obtained based on MLE's from the first stage
+
+<div class="column-left">
+```{r,fig.width=6}
+n1 <- 30
+X <- vector("numeric", n1)
+Y <- vector("integer", n1)
+
+for (i in seq_len(n1)) {
+  u <- runif(1)
+  X[i] <- round(exp(if_else(u <= 0.5, xi_dopt$d[1], xi_dopt$d[2])))
+  u <- runif(1)
+  Y[i] <- if_else(u <= 1/(1+exp(-(fit$alpha_hat+fit$beta_hat*log(X[i])))), 1, 0)
+}
+
+obs_df1 <- tibble::tibble(
+  dose = c(513, 996), #unique(X),
+  N = c(16, 14), #map_dbl(dose, ~ sum(X == .)),
+  `#Toxic` = c(6, 8) # map_dbl(dose, ~ sum(Y[X == .]))
+) %>% 
+  bind_rows(obs_df)
+  
+fit1 <- fit_logistic(log(obs_df1$dose), obs_df1$N, obs_df1$`#Toxic`)
+  
+dd <- seq(min(d1), max(d1), length = 50)
+
+# true curve
+true_df <- tibble::tibble(
+  x = dd, 
+  y = 1/(1+exp(-(alpha+beta*log(dd))))
+)
+
+# fitted curve
+fit_df <- tibble::tibble(
+  x = dd, 
+  y = 1/(1+exp(-(fit1$alpha_hat+fit1$beta_hat*log(dd))))
+)
+
+# observations
+obs_df <- obs_df1 %>% 
+select(x = dose, n = N, nY = `#Toxic`) %>% 
+arrange(x) %>% 
+mutate(y = nY/n) %>% 
+select(x, y)
+
+# 95% CI's of logistic curve
+ci95_df <- map(log(obs_df$x), ~ {
+  dose <- .
+  ci_pr <- fit1$ci_pr(dose)
+  tribble(
+    ~"d", ~"Estimated P(d)", ~"Lower(95% CI)", ~"Upper(95% CI)",
+    round(exp(dose)), fit$pr_hat(dose), ci_pr[1], ci_pr[2]
+  )
+}) %>% 
+  bind_rows() %>% 
+  gather(bound, value, -d, -`Estimated P(d)`)
+
+ci_D20 <- tibble::tibble(
+  x = round(exp(fit1$ci_D100G(0.2)$ci)),
+  y = rep(fit1$pr_hat(fit1$ci_D100G(0.2)$D100G_hat), 2)
+)
+ci_D50 <- tibble::tibble(
+  x = round(exp(fit1$ci_D100G(0.5)$ci)),
+  y = rep(fit1$pr_hat(fit1$ci_D100G(0.5)$D100G_hat), 2)
+)
+
+ggplot()+
+  geom_point(data = obs_df, aes(x, y, color = "Observed proportion of toxicities"), size = 2.25)+
+  geom_line(data = fit_df, aes(x, y, color = "Fitted logistic model"), size = 0.75)+
+  #geom_line(data = true_df, aes(x, y, color = "True logistic model"), size = 0.75, linetype="dashed")+
+  geom_line(data = ci95_df, aes(x = d, y = value, group = d, color = "95% CI for probability of toxicities"))+
+  geom_line(data = tibble::tibble(x = c(min(dd), max(dd)), y = rep(0.2, 2)), aes(x,y), linetype="dashed", color = "red")+
+  geom_line(data = ci_D20, aes(x, y, color = "95% CI for D20"), size = 0.75)+
+  geom_point(data=tibble::tibble(x=round(exp(fit1$ci_D100G(0.2)$D100G_hat)),y=0.2), aes(x,y), color = "red", size = 3, shape = 15)+
+  geom_line(data = tibble::tibble(x = c(min(dd), max(dd)), y = rep(0.5, 2)), aes(x,y), linetype="dashed", color = "darkorange")+
+  geom_line(data = ci_D50, aes(x, y, color = "95% CI for D50"), size = 0.75)+
+  geom_point(data=tibble::tibble(x=round(exp(fit1$D50_hat)),y=0.5), aes(x,y), color = "darkorange", size = 3, shape = 15)+
+  xlab("Dose")+
+  ylab("Probability of toxicity")+
+  scale_x_continuous(breaks = seq(100, 1700, by = 200))+
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1))+
+  scale_color_manual(
+    values = c(
+      "Observed proportion of toxicities" = "black",
+      "Fitted logistic model" = "black",
+      #"True logistic model" = "black",
+      "95% CI for probability of toxicities" = "blue",
+      "95% CI for D20" = "red",
+      "95% CI for D50" = "darkorange"
+    )
+  )+
+  theme(
+    axis.title.x = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.x = element_text(family = "Helvetica", face = "bold", size = 14),
+    axis.title.y = element_text(family = "Helvetica", face = "bold", size = 18),
+    axis.text.y = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Helvetica", face = "bold", size = 14),
+    legend.background = element_rect(fill = NA),
+    legend.position = c(0.35, 0.85), #"bottom",
+    legend.key=element_blank()
+  )+
+  guides(
+    color = guide_legend(override.aes = list(
+      color = c("red", "darkorange", "blue", "black", "black"), #"black"),
+      linetype = c("solid", "solid", "solid", "solid", "blank"), #"dashed"), 
+      shape = c(NA, NA, NA, NA, 16)#, NA)
+    ))
+  )
+```
+
+</div>
+
+<div class="column-right">
+
+```{r}
+tab <- bind_rows(
+  tribble(
+    ~" ", ~ "Estimate", ~"95% CI",
+    "$D_{50}$", round(exp(fit1$D50_hat)), paste0("(", round(exp(fit1$ci_D50()[1])), "," ,round(exp(fit1$ci_D50()[2])), ")"),
+    "$D_{20}$", round(exp(fit1$ci_D100G(0.2)$D100G_hat)), paste0("(", round(exp(fit1$ci_D100G(0.2)$ci[1])), "," ,round(exp(fit1$ci_D100G(0.2)$ci[2])), ")")
+  )
+) 
+
+knitr::kable(tab, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  row_spec(0, bold = T, color = "white", background = "#6666ff") %>% 
+  row_spec(c(1), background = "#99cfe0") %>% 
+  row_spec(c(2), background = "#c1e1ec")
+
+```
+
+- The displayed data analysis is based on pooled data from 45 subjects (15 from the pilot stage and 30 from the D-optimal stage)
+</div>
+
+
+
+## Summary
+
+In this lecture we have learned how to:
+
+1. Perform parametric modeling of the logistic dose–toxicity curve
+2. Obtain various designs that are optimal for given study objectives
+3. Construct adaptive designs that facilitate learning about dose–toxicity relationship while protecting subjects from exposure to too toxic doses
+
+
