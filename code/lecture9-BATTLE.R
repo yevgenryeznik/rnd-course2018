@@ -16,7 +16,8 @@ scale_fill_brewer(palette="Paired")+
 ggtitle("Treatment allocation numbers in the BATTLE trial") +
 theme_minimal()
 
-ggplot(data=df3, aes(x=drug, y=prop, fill=BM)) + geom_bar(stat="identity", , position=position_dodge()) +
+ggplot(data=df3, aes(x=drug, y=prop, fill=BM)) + 
+  geom_bar(stat="identity", , position=position_dodge()) +
 scale_fill_brewer(palette="Paired")+
 geom_text(aes(label=prop), vjust=1.6, color="white", position = position_dodge(0.9), size=3.5) +
 ggtitle("Observed 8-week DCR's in the BATTLE trial") +
