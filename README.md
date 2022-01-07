@@ -12,6 +12,6 @@ Course materials for the "Optimal designs and randomization techniques for clini
 - Lecture 6: __Optimal Response-Adaptive Randomization__
 - Lecture 7: __Bayesian Adaptive Randomization__
 - Lecture 8: __Optimal and Adaptive Designs for Quantal Dose-Response Problems__
-- Lecture 9: __Case Studies (by ![Oleksandr Sverdlov](https://scholar.google.com/citations?user=BNItFkEAAAAJ&hl=en), Novartis Pharmaceuticals)__
+- Lecture 9: __Case Studies (by [Oleksandr Sverdlov](https://scholar.google.com/citations?user=BNItFkEAAAAJ&hl=en), Novartis Pharmaceuticals)__
 
 ## 
